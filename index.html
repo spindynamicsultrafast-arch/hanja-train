@@ -43,6 +43,8 @@ button.icon{padding:8px 14px;font-size:24px}
 .shake{animation:shake .4s}
 @keyframes shake{25%{transform:translateX(-10px)}50%{transform:translateX(10px)}75%{transform:translateX(-6px)}}
 .prompt{font-size:clamp(70px,16vw,150px);line-height:1.1;text-align:center}
+.prompt.sent{font-size:clamp(26px,5vw,40px);font-family:Jua,sans-serif;line-height:1.5;max-width:760px;word-break:keep-all}
+.blank{display:inline-block;min-width:3.5em;border-bottom:4px solid var(--accent);margin:0 4px}
 .prompt.txt{font-size:clamp(36px,8vw,64px);font-family:Jua,sans-serif}
 b.k{color:var(--accent)}
 .morph{position:relative;width:220px;height:220px}
@@ -145,6 +147,131 @@ const HOMO = [
 {s:'소',bins:[['小','🐭','작은',['소아과','최소']],['少','🤏','적은·어린',['소년','소녀']],['消','🧯','불 끄기',['소방차','소화기']]]},
 ];
 
+// 문장 모드: 글자마다 생활 문장 1개, {빈칸}에 그 글자가 든 한자어
+const SENT={
+'一':"달리기 시합에서 {일등}을 했어요.",
+'二':"우리 집은 {이층}에 있어요.",
+'三':"엄마의 남동생은 나의 {삼촌}이에요.",
+'十':"길에서 동전 {십 원}을 주웠어요.",
+'四':"네모 모양은 {사각형}이에요.",
+'五':"어린이날은 {오월}에 있어요.",
+'六':"벌집 모양은 {육각형}이에요.",
+'七':"여름 방학은 {칠월}에 시작해요.",
+'八':"멈춤 표지판 모양은 {팔각형}이에요.",
+'九':"곱하기를 외울 때 {구구단}을 불러요.",
+'日':"오늘은 내 {생일}이라 케이크를 먹었어요.",
+'月':"한 주가 시작되는 날은 {월요일}이에요.",
+'火':"불이 나면 {소화기}로 불을 꺼요.",
+'水':"물속에서 헤엄치는 것을 {수영}이라고 해요.",
+'木':"나무로 만든 말, {목마}를 탔어요.",
+'金':"일등을 하면 {금메달}을 받아요.",
+'土':"{토요일} 다음 날은 일요일이에요.",
+'上':"건물 맨 꼭대기는 {옥상}이에요.",
+'下':"엘리베이터를 타고 {지하} 주차장에 가요.",
+'中':"줄의 한가운데를 {중간}이라고 해요.",
+'人':"곰 {인형}을 안고 자요.",
+'大':"집으로 들어가는 큰 문은 {대문}이에요.",
+'小':"어린이가 아프면 {소아과}에 가요.",
+'子':"임금님의 아들은 {왕자}예요.",
+'女':"여자 임금님은 {여왕}이에요.",
+'男':"아빠는 {남자}예요.",
+'口':"들어가는 곳은 {입구}예요.",
+'入':"초등학교에 들어가는 것을 {입학}이라고 해요.",
+'出':"나가는 곳은 {출구}예요.",
+'門':"학교의 앞문은 {정문}이에요.",
+'山':"산에 오르는 것을 {등산}이라고 해요.",
+'雨':"비가 오면 {우산}을 써요.",
+'車':"불을 끄러 {소방차}가 달려가요.",
+'休':"고속도로에서 쉬어 가는 곳은 {휴게소}예요.",
+'手':"잘했을 때 짝짝짝 {박수}를 쳐요.",
+'心':"길을 건널 때는 차를 {조심}해요.",
+'父':"아버지와 어머니를 {부모}라고 해요.",
+'母':"엄마의 언니나 여동생은 {이모}예요.",
+'兄':"형과 동생을 함께 {형제}라고 해요.",
+'弟':"우리 {형제}는 사이가 좋아요.",
+'王':"공주의 오빠는 {왕자}예요.",
+'白':"하얀 새 {백조}가 호수에 떠 있어요.",
+'安':"만나면 반갑게 {안녕} 하고 인사해요.",
+'生':"바다에서 잡은 물고기를 {생선}이라고 해요.",
+'先':"유치원에서 우리를 가르쳐 주시는 분은 {선생님}이에요.",
+'年':"올해 다음 해는 {내년}이에요.",
+'字':"1, 2, 3 같은 것을 {숫자}라고 해요.",
+'千':"과자를 사려고 {천 원}을 냈어요.",
+'半':"사과를 둘로 나누면 {절반}이 돼요.",
+'分':"잠깐만, {5분}만 기다려 줘요.",
+'正':"문제를 맞히면 {정답}이에요.",
+'外':"밖에 나가는 것을 {외출}이라고 해요.",
+'名':"우리 모둠은 {세 명}이에요.",
+'用':"엄마가 {용돈}을 주셨어요.",
+'今':"{지금} 몇 시예요?",
+'主':"이 강아지의 {주인}은 나예요.",
+'公':"그네와 미끄럼틀이 있는 {공원}에 가요.",
+'百':"동전 {백 원}으로 사탕을 샀어요.",
+'東':"해는 {동쪽}에서 떠요.",
+'西':"해는 {서쪽}으로 져요.",
+'南':"따뜻한 바람은 {남쪽}에서 불어와요.",
+'北':"북극곰은 추운 {북극}에 살아요.",
+'牛':"아침마다 하얀 {우유}를 마셔요.",
+'馬':"말이 끄는 수레는 {마차}예요.",
+'魚':"{인어}공주는 바다에 살아요.",
+'鳥':"목이 긴 새 {타조}는 날지 못해요.",
+'犬':"집에서 가족처럼 키우는 개는 {반려견}이에요.",
+'目':"눈, 귀, 입, 코를 {이목구비}라고 해요.",
+'耳':"귀가 아프면 {이비인후과}에 가요.",
+'力':"포기하지 않고 열심히 하는 것을 {노력}이라고 해요.",
+'天':"날개 달린 {천사}가 하늘에서 내려왔어요.",
+'石':"반짝반짝 빛나는 돌은 {보석}이에요.",
+'花':"베란다에 꽃이 핀 {화분}이 있어요.",
+'好':"궁금한 게 많은 마음은 {호기심}이에요.",
+'方':"어느 쪽으로 갈지 {방향}을 정해요.",
+'內':"방 안을 {실내}라고 해요.",
+'工':"물건을 만드는 곳은 {공장}이에요.",
+'平':"토요일, 일요일이 아닌 날은 {평일}이에요.",
+'光':"어두운 곳에서 빛나는 스티커는 {야광} 스티커예요.",
+'不':"의자가 딱딱해서 {불편}해요.",
+'足':"돼지 발로 만든 음식은 {족발}이에요.",
+'全':"차를 탈 때는 {안전}벨트를 매요.",
+'氣':"오늘은 {기분}이 아주 좋아요.",
+'家':"엄마, 아빠, 나를 합쳐 {가족}이라고 해요.",
+'室':"손을 씻으러 {화장실}에 가요.",
+'午':"점심을 먹고 난 뒤는 {오후}예요.",
+'前':"낮 열두 시 앞은 {오전}이에요.",
+'後':"낮 열두 시 뒤는 {오후}예요.",
+'每':"나는 {매일} 아침 이를 닦아요.",
+'時':"이제 밥 먹을 {시간}이에요.",
+'長':"유치원에서 가장 높은 선생님은 {원장님}이에요.",
+'色':"그림을 그릴 때 {색연필}을 써요.",
+'靑':"파란 바지는 {청바지}예요.",
+'黃':"누렇게 빛나는 금은 {황금}이에요.",
+'食':"유치원에서 점심으로 {급식}을 먹어요.",
+'同':"나보다 어린 {동생}과 놀아요.",
+'少':"어린 남자아이를 {소년}이라고 해요.",
+'自':"두 바퀴 {자전거}를 타요.",
+'文':"연필과 공책을 파는 가게는 {문구점}이에요.",
+'右':"오른쪽으로 도는 것은 {우회전}이에요.",
+'空':"비행기는 {공항}에서 떠요.",
+'學':"여름에 학교에 안 가는 때는 {방학}이에요.",
+'校':"초등학생은 {학교}에 가요.",
+'間':"재미있는 놀이 {시간}이 끝났어요.",
+'園':"기린과 코끼리를 보러 {동물원}에 가요.",
+'院':"아프면 {병원}에 가요.",
+'館':"책을 빌리러 {도서관}에 가요.",
+'店':"밤에도 문을 여는 가게는 {편의점}이에요.",
+'場':"자동차를 세워 두는 곳은 {주차장}이에요.",
+'道':"차가 다니는 길은 {도로}예요.",
+'電':"멀리 계신 할머니와 {전화}로 이야기해요.",
+'話':"잠자기 전에 {동화}책을 읽어요.",
+'國':"우리나라 이름은 {한국}이에요.",
+'物':"생일에 {선물}을 받았어요.",
+'動':"몸을 움직여 {운동}해요.",
+'答':"질문에 맞는 답은 {정답}이에요.",
+'海':"여름에 바다 {해수욕장}에 놀러 가요.",
+'雪':"일곱 난쟁이와 사는 공주는 {백설공주}예요.",
+'問':"모르는 것이 있으면 선생님께 {질문}해요.",
+'左':"왼쪽으로 도는 것은 {좌회전}이에요.",
+'語':"미국 사람은 {영어}로 말해요.",
+'萬':"{만 원}짜리 지폐는 초록색이에요."
+};
 // ===== 순수 함수 =====
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
 const pick=a=>a[Math.random()*a.length|0];
@@ -250,6 +377,7 @@ function lesson(g,isNew){
   const c=g.chars,half=Math.ceil(c.length/2);
   (c.length>4?[c.slice(0,half),c.slice(half)]:[c]).forEach(r=>st.push(()=>match(fill(r,3))));
   c.forEach(h=>st.push(()=>pickWord(h,null)));
+  shuffle(c.filter(h=>SENT[h])).slice(0,2).forEach(h=>st.push(()=>cloze(h,null)));
   st.push(()=>{const set=new Set(c);
     const cs=shuffle(COMBO.filter(x=>[...x[0]].some(h=>set.has(h))&&comboReady(x))).slice(0,2);
     const sm=SIM.filter(s=>[...s].some(h=>set.has(h))&&[...s].every(h=>S.cards[h])).slice(0,2);
@@ -285,16 +413,21 @@ function choice(o){let first=true,done=false;
   if(o.speak){const s=()=>say(o.speak);$('spk').onclick=s;setTimeout(s,300)}
   shuffle(o.opts).forEach(op=>{const c=el('div','card '+(op.cls||''),op.html);
     c.onclick=()=>{if(done)return;
-      if(op.ok){done=true;sfx('ok');c.classList.add('ok');if(op.after)c.innerHTML=op.after;say(o.okSay||pick(PRAISE));o.onAnswer&&o.onAnswer(first);setTimeout(NEXT,1500)}
+      if(op.ok){done=true;sfx('ok');c.classList.add('ok');if(op.after)c.innerHTML=op.after;if(o.bigCls==='sent')document.querySelector('.prompt').innerHTML=o.big.replace(/<span class="blank"><\/span>/,`<b class="k">${op.html}</b>`);say(o.okSay||pick(PRAISE));o.onAnswer&&o.onAnswer(first);setTimeout(NEXT,1500)}
       else{first=false;sfx('no');shakeEl(c);c.classList.add('dim');say('다시 찾아볼까?')}};
     $('O').append(c)})}
 function others(h,n){const L=learned().filter(x=>x!==h);return shuffle(L.length>=n?L:Object.keys(CH).filter(x=>x!==h)).slice(0,n)}
-function review(h,graded){(Math.random()<.5?pickHanja:pickWord)(h,graded?ok=>grade(h,ok):null)}
+function review(h,graded){pick(SENT[h]?[pickHanja,pickWord,cloze]:[pickHanja,pickWord])(h,graded?ok=>grade(h,ok):null)}
 function pickHanja(h,on){const c=CH[h];
   choice({head:'글자 찾기',title:'이 글자를 찾아봐!',big:c.hun,bigCls:'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on})}
 function pickWord(h,on){const c=CH[h],right=pick(c.words),L=learned().filter(x=>x!==h);
   const ds=distractWords(h,2,L.length>=3?L:Object.keys(CH));
   choice({head:'단어 찾기',title:'이 글자가 들어간 말은?',big:h,bigCls:'hj',opts:[{html:plain(right),cls:'txt',ok:true,after:mark(right)+`<small>${c.hun}</small>`},...ds.map(w=>({html:plain(w),cls:'txt'}))],onAnswer:on,okSay:`${plain(right)}! ${c.hun}`})}
+function cloze(h,on){const s=SENT[h],w=s.match(/\{(.+?)\}/)[1],full=s.replace(/[{}]/g,'');
+  const L=learned().filter(x=>x!==h),ds=distractWords(h,2,L.length>=3?L:Object.keys(CH)).map(plain).filter(d=>d!==w);
+  choice({head:'문장 속 한자어',title:'📖 빈칸에 들어갈 말은?',big:s.replace(/\{.+?\}/,'<span class="blank"></span>'),bigCls:'sent',speak:null,
+    opts:[{html:w,cls:'txt',ok:true,after:`${w}<small>${CH[h].hun}</small>`},...ds.map(d=>({html:d,cls:'txt'}))],
+    onAnswer:on,okSay:full})}
 function similar(s){const t=pick([...s]);
   choice({head:'닮은꼴 찾기',title:'👀 닮은꼴! 어느 것일까?',big:CH[t].hun,bigCls:'txt',speak:CH[t].hun,opts:[...s].map(x=>({html:x,cls:'hj',ok:x===t})),okSay:CH[t].hun})}
 
