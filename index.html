@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="only light">
+<meta name="darkreader-lock">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>한자 기차여행</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@700&family=Jua&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff7e6;--card:#fff;--ink:#4a3b2a;--sel:#ffb703;--ok:#8ac926;--accent:#ff6b6b;--line:#e8d5b5;--soft:#f3e6cc}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:Jua,sans-serif}
+body::before{content:'';position:fixed;inset:0;z-index:-1;background:linear-gradient(rgba(255,247,230,.5),rgba(255,247,230,.5)),url(img/bg.jpg) center bottom/cover}
+.hj{font-family:'Noto Serif KR',serif}
+#app{max-width:960px;margin:0 auto;padding:12px 16px 40px;display:flex;flex-direction:column;align-items:center;gap:16px}
+header{width:100%;display:flex;justify-content:space-between;align-items:center;font-size:28px;gap:8px}
+button{font-family:Jua,sans-serif;font-size:26px;padding:12px 28px;border:0;border-radius:999px;background:var(--accent);color:#fff;box-shadow:0 5px 0 #c94f4f;cursor:pointer}
+button:active{transform:translateY(3px);box-shadow:0 2px 0 #c94f4f}
+button.soft{background:var(--soft);color:var(--ink);box-shadow:0 5px 0 var(--line)}
+button.icon{padding:8px 14px;font-size:24px}
+.big-btn{font-size:36px;padding:20px 48px}
+.row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.title{font-size:32px;text-align:center}
+.sub{font-size:22px;opacity:.8;text-align:center}
+.stage{width:100%;background:#fff;border-radius:24px;padding:12px 16px;box-shadow:0 4px 0 var(--line)}
+.stage h3{margin:0 0 8px;font-weight:normal;font-size:22px}
+.track{display:flex;flex-wrap:wrap;gap:10px}
+.stn{width:72px;height:72px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28px;background:var(--soft);border:4px solid var(--line);cursor:pointer}
+.stn small{font-size:11px;font-family:Jua,sans-serif}
+.stn.done{background:#eaf7d9;border-color:var(--ok)}
+.stn.gold{border-color:#f4c430;box-shadow:0 0 0 3px #ffe9a8}
+.stn.cur{background:#fff;border-color:var(--accent);animation:pulse 1.2s infinite}
+.stn.lock{opacity:.45;cursor:default}
+@keyframes pulse{50%{transform:scale(1.08)}}
+.grid{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:14px;width:100%}
+.card{background:var(--card);border-radius:22px;box-shadow:0 6px 0 var(--line);border:5px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;padding:8px;font-size:clamp(40px,8vw,80px);line-height:1.15;cursor:pointer;text-align:center;transition:transform .15s}
+.card.txt{font-size:clamp(22px,4vw,36px);word-break:keep-all;font-family:Jua,sans-serif}
+.card small{font-size:clamp(14px,2.4vw,22px);font-family:Jua,sans-serif;min-height:1.2em}
+.card.sel{border-color:var(--sel);transform:translateY(-6px)}
+.card.ok{background:#eaf7d9;box-shadow:0 6px 0 #b9dc8f;pointer-events:none}
+.card.dim{opacity:.35;pointer-events:none}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-10px)}50%{transform:translateX(10px)}75%{transform:translateX(-6px)}}
+.prompt{font-size:clamp(70px,16vw,150px);line-height:1.1;text-align:center}
+.prompt.txt{font-size:clamp(36px,8vw,64px);font-family:Jua,sans-serif}
+b.k{color:var(--accent)}
+.morph{position:relative;width:220px;height:220px}
+.morph span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:170px}
+/* 그림 1.3초 보여주고 → 2초에 걸쳐 한자로. 그림은 옅게 뒤에 남겨 모양을 비교 */
+.morph .e{animation:out 3.3s ease-in-out forwards}
+.morph .h{opacity:0;animation:in 3.3s ease-in-out forwards}
+@keyframes out{0%,40%{opacity:1;transform:scale(1);filter:blur(0)}100%{opacity:.15;transform:scale(1);filter:blur(1px)}}
+@keyframes in{0%,40%{opacity:0;transform:scale(1.3);filter:blur(10px)}100%{opacity:1;transform:none;filter:none}}
+.words{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.words span{background:#fff;border-radius:16px;padding:8px 16px;font-size:28px;box-shadow:0 4px 0 var(--line)}
+.slots{display:flex;gap:12px}
+.slot{width:110px;height:110px;border-radius:20px;border:4px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:80px;background:#fff}
+.bins{display:grid;grid-template-columns:repeat(var(--n,3),1fr);gap:14px;width:100%}
+.bin{background:#fff;border-radius:24px;box-shadow:0 6px 0 var(--line);padding:12px;text-align:center;font-size:26px;cursor:pointer;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.bin .e{font-size:56px}
+.bin .got{font-size:18px;min-height:1.2em}
+.sticker{font-size:150px;animation:pop .6s}
+@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.book{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;width:100%}
+.book div{background:#fff;border-radius:18px;padding:8px;text-align:center;box-shadow:0 4px 0 var(--line);font-size:16px}
+.book div b{display:block;font-size:44px;font-weight:normal}
+.book div.no{opacity:.35}
+.book div.gold{box-shadow:0 0 0 4px #f4c430}
+.panel{width:100%;background:#fff;border-radius:24px;padding:16px 20px;font-size:20px;box-shadow:0 4px 0 var(--line);line-height:1.6}
+.panel table{width:100%;border-collapse:collapse}
+.panel td{padding:4px 6px;border-bottom:1px solid var(--soft)}
+.bar{height:12px;background:var(--soft);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ok)}
+img.pic{width:1em;height:1em;object-fit:contain}
+.card img.pic{width:min(110px,75%);height:auto;aspect-ratio:1}
+.morph img.pic{width:190px;height:190px}
+.sticker img.pic{width:170px;height:170px}
+button img.pic{vertical-align:-4px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ===== 데이터 (CURRICULUM.md 5단계 35묶음) =====
+// 글자: "한자|훈음|그림(이모지 또는 img/경로)|[강조]단어,..."
+const RAW = [
+['1A','숫자1','계단을 오르며 일, 이, 삼… 십까지 세어 봐요',['一|한 일|1️⃣|[일]등,[일]층','二|두 이|2️⃣|[이]층,[이]등','三|석 삼|3️⃣|[삼]촌,[삼]각형','十|열 십|🔟|[십] 원,[십]자가']],
+['1A','숫자2','구구단 노래에서 숫자 소리를 찾아봐요',['四|넉 사|4️⃣|[사]각형,[사]월','五|다섯 오|5️⃣|[오]월,[오]각형','六|여섯 륙|6️⃣|[유]월,[육]각형','七|일곱 칠|7️⃣|[칠]월,[칠]층','八|여덟 팔|8️⃣|[팔]월,[팔]각형','九|아홉 구|9️⃣|[구]월,[구]구단']],
+['1A','달력1','달력에서 일, 월, 화, 수 글자를 찾아봐요',['日|날 일|img/u65e5.webp|[일]요일,생[일],매[일]','月|달 월|img/u6708.webp|[월]요일,오[월]','火|불 화|img/u706b.webp|[화]요일,[화]산,소[화]기','水|물 수|img/u6c34.webp|[수]요일,[수]영,정[수]기']],
+['1A','달력2','오늘은 무슨 요일인지 달력에서 찾아봐요',['木|나무 목|img/u6728.webp|[목]요일,[목]수,[목]마','金|쇠 금|img/u91d1.webp|[금]요일,[금]메달,황[금]','土|흙 토|img/u571f.webp|[토]요일,황[토]']],
+['1A','위아래','엘리베이터에서 위, 아래 버튼을 찾아봐요',['上|윗 상|img/u4e0a.webp|옥[상],세[상]','下|아래 하|img/u4e0b.webp|지[하],[하]교','中|가운데 중|img/u4e2d.webp|[중]간,[중]심']],
+['1B','사람1','소아과 간판에서 작을 소를 찾아봐요',['人|사람 인|img/u4eba.webp|[인]형,거[인],외계[인]','大|큰 대|img/u5927.webp|[대]문,[대]장','小|작을 소|img/u5c0f.webp|[소]아과,최[소]']],
+['1B','사람2','화장실 표지판에서 남, 여를 찾아봐요',['子|아들 자|img/u5b50.webp|왕[자],여[자],남[자]','女|여자 녀|img/u5973.webp|[여]자,[여]왕','男|사내 남|img/u7537.webp|[남]자,[남]녀']],
+['1B','드나들기','주차장이나 지하철에서 입구, 출구를 찾아봐요',['口|입 구|img/u53e3.webp|입[구],출[구],식[구]','入|들 입|img/u5165.webp|[입]구,[입]학','出|날 출|img/u51fa.webp|[출]구,[출]발','門|문 문|img/u9580.webp|대[문],정[문]']],
+['1B','밖에서','달력에서 빨간 날, 휴일을 찾아봐요',['山|메 산|img/u5c71.webp|등[산],화[산]','雨|비 우|img/u96e8.webp|[우]산,[우]비','車|수레 차|img/u8eca.webp|자동[차],기[차],소방[차]','休|쉴 휴|img/u4f11.webp|[휴]일,[휴]게소']],
+['1B','몸·마음','박수 세 번! 손 수를 떠올려 봐요',['手|손 수|img/u624b.webp|박[수],가[수],[수]건','心|마음 심|img/u5fc3.webp|[심]장,조[심]']],
+['2','가족','우리 집 부모님과 형제를 한자로 말해 봐요',['父|아버지 부|img/u7236.webp|[부]모','母|어머니 모|img/u6bcd.webp|부[모],이[모],고[모]','兄|형 형|img/u5144.webp|[형],[형]제','弟|아우 제|img/u5f1f.webp|형[제]']],
+['2','동화·인사','안녕! 할 때 편안 안을 떠올려 봐요',['王|임금 왕|img/u738b.webp|[왕]자,여[왕]','白|흰 백|img/u767d.webp|[백]설공주,[백]조','安|편안 안|img/u5b89.webp|[안]녕,[안]전']],
+['2','유치원','선생님의 생은 날 생! 말해 봐요',['生|날 생|img/u751f.webp|[생]일,학[생],[생]선','先|먼저 선|img/u5148.webp|[선]생님','年|해 년|img/u5e74.webp|내[년],작[년]','字|글자 자|img/u5b57.webp|숫[자],한[자]']],
+['2','돈·시간','마트에서 천 원짜리를 찾아봐요',['千|일천 천|img/u5343.webp|[천] 원','半|반 반|img/u534a.webp|절[반],[반]쪽','分|나눌 분|img/u5206.webp|5[분],10[분]']],
+['2','생활','오늘 몇 명이랑 놀았는지 세어 봐요',['正|바를 정|img/u6b63.webp|[정]답,[정]문','外|바깥 외|img/u5916.webp|[외]출,[외]국','名|이름 명|img/u540d.webp|세 [명],[명]찰','用|쓸 용|img/u7528.webp|[용]돈','今|이제 금|img/u4eca.webp|지[금]']],
+['2','닮은꼴 합치기','동화책에서 공주를 찾아봐요',['主|주인 주|img/u4e3b.webp|[주]인,공[주]','公|공평할 공|img/u516c.webp|[공]원,[공]평','百|일백 백|img/u767e.webp|[백] 원']],
+['3','방향','해가 뜨는 쪽이 어디인지 찾아봐요',['東|동녘 동|img/u6771.webp|[동]쪽,[동]해,[동]대문','西|서녘 서|img/u897f.webp|[서]쪽,[서]해','南|남녘 남|img/u5357.webp|[남]쪽,[남]대문','北|북녘 북|img/u5317.webp|[북]쪽,[북]극']],
+['3','동물','우유팩을 보면 소 우를 떠올려 봐요',['牛|소 우|img/u725b.webp|[우]유','馬|말 마|img/u99ac.webp|목[마],[마]차','魚|물고기 어|img/u9b5a.webp|인[어],문[어]','鳥|새 조|img/u9ce5.webp|백[조],타[조]','犬|개 견|img/u72ac.webp|애완[견],반려[견]']],
+['3','몸·힘','이비인후과 간판을 찾아봐요',['目|눈 목|img/u76ee.webp|이[목]구비','耳|귀 이|img/u8033.webp|[이]목구비,[이]비인후과','力|힘 력|img/u529b.webp|노[력],체[력]']],
+['3','자연·이야기','자석 놀이를 하며 돌 석을 떠올려 봐요',['天|하늘 천|img/u5929.webp|[천]사,[천]장','石|돌 석|img/u77f3.webp|보[석],자[석]','花|꽃 화|img/u82b1.webp|[화]분,[화]단','好|좋을 호|img/u597d.webp|[호]기심']],
+['3','생활 더','야광 스티커를 찾아봐요',['方|모 방|img/u65b9.webp|[방]향,[방]법','內|안 내|img/u5167.webp|실[내]','工|장인 공|img/u5de5.webp|[공]장','平|평평할 평|img/u5e73.webp|[평]일,[평]화','光|빛 광|img/u5149.webp|야[광],형[광]펜']],
+['3','부족·안전','안전벨트 맬 때 안전을 떠올려 봐요',['不|아닐 불|img/u4e0d.webp|[불]편,[부]족','足|발 족|img/u8db3.webp|[족]발,부[족],만[족]','全|온전할 전|img/u5168.webp|안[전],완[전]']],
+['4','기분·집','오늘 기분은 어때? 기운 기!',['氣|기운 기|img/u6c23.webp|[기]분,공[기]','家|집 가|img/u5bb6.webp|[가]족','室|집 실|img/u5ba4.webp|화장[실],교[실],거[실]']],
+['4','오전·오후','지금이 오전인지 오후인지 맞혀 봐요',['午|낮 오|img/u5348.webp|[오]전,[오]후,정[오]','前|앞 전|img/u524d.webp|오[전]','後|뒤 후|img/u5f8c.webp|오[후]']],
+['4','매일·시간','시계를 보고 지금 몇 시인지 말해 봐요',['每|매양 매|img/u6bcf.webp|[매]일','時|때 시|img/u6642.webp|[시]간,세 [시]','長|긴 장|img/u9577.webp|원[장]님,반[장]']],
+['4','색','색연필 중에서 청색, 황색을 찾아봐요',['色|빛 색|img/u8272.webp|[색]깔,[색]연필','靑|푸를 청|img/u9751.webp|[청]바지','黃|누를 황|💛|[황]금']],
+['4','먹기·사람','오늘 간식은 뭐였는지 말해 봐요',['食|밥 식|img/u98df.webp|간[식],급[식],[식]당','同|한가지 동|img/u540c.webp|[동]생','少|적을 소|img/u5c11.webp|[소]년,[소]녀']],
+['4','닮은꼴 잇기','자동차, 자전거의 자를 찾아봐요',['自|스스로 자|img/u81ea.webp|[자]동차,[자]전거','文|글월 문|img/u6587.webp|[문]구점,[문]자','右|오른 우|img/u53f3.webp|좌[우],[우]회전','空|빌 공|img/u7a7a.webp|[공]기,[공]항']],
+['5','학교','학교 정문 앞에서 학교 교를 찾아봐요',['學|배울 학|img/u5b78.webp|[학]교,방[학]','校|학교 교|img/u6821.webp|학[교],[교]문','間|사이 간|img/u9593.webp|시[간],중[간]']],
+['5','원 가족','유치원과 병원 간판의 원을 비교해 봐요',['園|동산 원|img/u5712.webp|유치[원],공[원],동물[원]','院|집 원|img/u9662.webp|병[원],학[원]','館|집 관|img/u9928.webp|도서[관],수족[관]']],
+['5','장소','편의점 간판에서 가게 점을 찾아봐요',['店|가게 점|img/u5e97.webp|편의[점],문구[점]','場|마당 장|img/u5834.webp|운동[장],주차[장]','道|길 도|img/u9053.webp|[도]로,태권[도]']],
+['5','말','전화할 때 번개 전, 말씀 화를 떠올려 봐요',['電|번개 전|img/u96fb.webp|[전]화,[전]기','話|말씀 화|img/u8a71.webp|전[화],동[화]','國|나라 국|img/u570b.webp|한[국],[국]기']],
+['5','동물·운동','동물원에서 동물을 찾아봐요',['物|물건 물|img/u7269.webp|동[물],선[물]','動|움직일 동|img/u52d5.webp|[동]물,운[동]','答|대답 답|img/u7b54.webp|정[답]']],
+['5','바다·눈','눈 오는 날 눈 설을 떠올려 봐요',['海|바다 해|img/u6d77.webp|[해]변,[해]수욕장','雪|눈 설|img/u96ea.webp|백[설]공주','問|물을 문|img/u554f.webp|질[문]']],
+['5','마무리','만 원짜리 지폐를 찾아봐요',['左|왼 좌|img/u5de6.webp|[좌]우,[좌]회전','語|말씀 어|img/u8a9e.webp|국[어],영[어],단[어]','萬|일만 만|img/u842c.webp|[만] 원']],
+];
+// 조합 레고: [한자, 읽기, 뜻 힌트]
+const COMBO = [
+['入口','입구','들어가는 곳'],['出口','출구','나가는 곳'],['大門','대문','큰 문'],['男女','남녀','남자와 여자'],['休日','휴일','쉬는 날'],
+['火山','화산','불을 뿜는 산'],['九九','구구','구구단'],['生日','생일','태어난 날'],['先生','선생','먼저 태어난 사람'],['生水','생수','그대로의 물'],
+['父母','부모','아버지와 어머니'],['兄弟','형제','형과 아우'],['王子','왕자','임금의 아들'],['女王','여왕','여자 임금'],['正門','정문','바른 쪽의 큰 문'],
+['外出','외출','밖에 나감'],['主人','주인','물건의 임자'],['公主','공주','임금의 딸'],['白鳥','백조','하얀 새'],['木馬','목마','나무로 만든 말'],
+['人魚','인어','사람 물고기'],['東大門','동대문','동쪽의 큰 문'],['南大門','남대문','남쪽의 큰 문'],['不足','부족','넉넉하지 않음'],['安全','안전','편안하고 온전함'],
+['室內','실내','방 안'],['午前','오전','낮 열두 시 앞'],['午後','오후','낮 열두 시 뒤'],['正午','정오','낮 열두 시'],['每日','매일','날마다'],
+['同生','동생','같은 부모에게서 난 아래'],['少年','소년','어린 남자아이'],['少女','소녀','어린 여자아이'],['黃金','황금','누런 쇠, 금'],['時間','시간','때와 때 사이'],
+['中間','중간','가운데'],['學生','학생','배우는 사람'],['學校','학교','배우는 곳'],['校門','교문','학교 문'],['動物','동물','움직이는 것'],
+['動物園','동물원','동물이 사는 동산'],['自動車','자동차','스스로 움직이는 수레'],['正答','정답','바른 대답'],['外國','외국','바깥 나라'],['中國','중국','가운데 나라'],['白雪','백설','하얀 눈'],
+];
+// 닮은꼴: 모두 배웠을 때 등장
+const SIM = ['人入八','土上','七九','日白','十千','王主','分公','白百','東車','西四','日目','大天犬','平半','先光','入內','九力','工土王','千牛','千午牛','母每','石右','白自目','父文六','小少','公空工','左右','話語','園國','雨雪電','門問間','每海'];
+// 동음 탐정 (글자 없이 뜻으로 분류): [한자, 그림, 뜻, 단어들]
+const HOMO = [
+{s:'수',bins:[['水','💧','물',['수영','정수기','수요일','생수']],['手','✋','손',['박수','가수','수건','악수']],['數','🔢','셈',['숫자','수학']]]},
+{s:'화',bins:[['火','🔥','불',['화산','소화기','화요일']],['花','🌸','꽃',['화분','화단','국화']],['話','☎️','말',['전화','동화','대화']]]},
+{s:'원',bins:[['園','🎠','노는 동산',['유치원','공원','동물원','식물원']],['院','🏥','돌봐 주는 집',['병원','학원']]]},
+{s:'동',bins:[['動','🤸','움직임',['동물','운동','자동차']],['同','👫','같음',['동생','동시']],['東','🌅','해 뜨는 쪽',['동쪽','동해','동대문']]]},
+{s:'공',bins:[['公','🏞️','모두의',['공원','공평']],['空','✈️','하늘·빈',['공기','공항','공책']],['工','🏭','만들기',['공장','공사']]]},
+{s:'소',bins:[['小','🐭','작은',['소아과','최소']],['少','🤏','적은·어린',['소년','소녀']],['消','🧯','불 끄기',['소방차','소화기']]]},
+];
+
+// ===== 순수 함수 =====
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.random()*a.length|0];
+const plain=w=>w.replace(/[\[\]]/g,'');
+const mark=w=>w.replace(/\[(.+?)\]/g,'<b class="k">$1</b>');
+const syl=w=>(w.match(/\[(.+?)\]/)||[])[1];
+const CH={};
+const GROUPS=RAW.map((g,i)=>({i,stage:g[0],name:g[1],mission:g[2],chars:g[3].map(s=>{const [h,hun,emoji,ws]=s.split('|');CH[h]={h,hun,emoji,words:ws.split(','),g:i};return h})}));
+// 정답 글자와 같은 소리가 든 단어는 오답 보기에서 뺌 (생일 ↔ 日 같은 함정 방지)
+function distractWords(h,n,pool){const ss=CH[h].words.map(syl);const out=new Set();
+  for(const o of shuffle(pool)) if(o!==h) for(const w of CH[o].words){if(!ss.some(s=>plain(w).includes(s)))out.add(w)}
+  return shuffle([...out]).slice(0,n)}
+const IV=[1,3,7,14,30];
+const fresh=()=>({cards:{},done:[],lastNew:-1,off:0});
+let S=fresh();
+const today=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+S.off;
+const learned=()=>Object.keys(S.cards);
+function learnInit(h){if(!S.cards[h])S.cards[h]={box:0,due:today()+1,wrong:0}}
+function grade(h,ok){const c=S.cards[h];if(!c)return;if(ok)c.box=Math.min(c.box+1,IV.length-1);else{c.box=0;c.wrong++}c.due=today()+IV[c.box];save()}
+const mastered=g=>g.chars.every(h=>S.cards[h]&&S.cards[h].box>=2);
+const nextGroup=()=>GROUPS[S.done.length]||null;
+const comboReady=c=>[...c[0]].every(h=>S.cards[h]);
+const firstEmoji=g=>g.chars.map(h=>CH[h].emoji).find(Boolean)||'⭐';
+function save(){try{localStorage.setItem('hanja-v2',JSON.stringify(S))}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem('hanja-v2'));if(x&&x.cards)S=x}catch(e){}}
+// ===UI===
+const $app=document.getElementById('app');
+const PRAISE=['잘했어!','맞았어!','멋져!','최고야!'];
+// 여러 마디를 gap(ms) 간격으로 차례로 읽음. 새로 말하면 이전 목록은 중단.
+let SAYID=0,UTT=null,VOICE=null;
+// 가장 또렷한 한국어 음성 고르기: Google(Chrome·안드로이드) > 자연어(Edge) > Yuna(아이패드) > 기본
+function pickVoice(){const vs=speechSynthesis.getVoices().filter(v=>/^ko/i.test(v.lang));
+  const rank=v=>/google/i.test(v.name)?0:/natural|online/i.test(v.name)?1:/yuna|sora|premium|enhanced/i.test(v.name)?2:/heami/i.test(v.name)?9:5;
+  VOICE=vs.sort((a,b)=>rank(a)-rank(b))[0]||null}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
+function sayList(parts,gap=500){const id=++SAYID;let i=0;
+  try{speechSynthesis.cancel()}catch(e){}
+  BGM.volume=.05;
+  const next=()=>{if(id!==SAYID)return;if(i>=parts.length){BGM.volume=.16;return}
+    try{UTT=new SpeechSynthesisUtterance(parts[i++]);UTT.lang='ko-KR';if(VOICE)UTT.voice=VOICE;UTT.rate=.9;UTT.onend=()=>setTimeout(next,gap);speechSynthesis.speak(UTT)}catch(e){BGM.volume=.16}};
+  setTimeout(next,150)}
+const say=t=>sayList([t]);
+// 효과음: 브라우저 신디사이저로 합성 (크레딧·파일 없음)
+let AC=null;
+function tone(freq,t0,dur,type='sine',vol=.18){const a=AC||(AC=new (window.AudioContext||window.webkitAudioContext)());
+  const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;o.type=type;o.frequency.setValueAtTime(freq,t);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.015);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g).connect(a.destination);o.start(t);o.stop(t+dur+.05)}
+const SFX={
+  tap:()=>tone(660,0,.08,'triangle',.12),
+  ok:()=>{tone(784,0,.15,'triangle');tone(1175,.1,.25,'triangle')},
+  no:()=>{tone(220,0,.18,'sine',.15);tone(196,.12,.22,'sine',.12)},
+  pop:()=>{tone(523,0,.1,'square',.06);tone(1047,.06,.18,'triangle',.15)},
+  win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,i*.12,i===3?.6:.2,'triangle',.16)),
+  magic:()=>[1319,1568,1760,2093].forEach((f,i)=>tone(f,i*.07,.25,'sine',.07)),
+};
+function sfx(k){try{SFX[k]()}catch(e){}}
+// 배경음악: 첫 터치 때 시작 (브라우저 자동재생 규칙)
+const BGM=new Audio('sound/bgm.mp3');BGM.loop=true;BGM.volume=.16;
+function musicOn(){return S.music!==false}
+function syncMusic(){if(musicOn())BGM.play().catch(()=>{});else BGM.pause()}
+function toggleMusic(){S.music=!musicOn();save();syncMusic();goHome()}
+addEventListener('pointerdown',()=>{if(AC&&AC.state==='suspended')AC.resume();if(musicOn()&&BGM.paused)syncMusic()},{passive:true});
+const ico=k=>`<img class="pic" src="img/ui_${k}.webp" alt="">`;
+const pic=e=>e&&e.startsWith('img/')?`<img class="pic" src="${e}" alt="">`:(e||'');
+const view=html=>{$app.innerHTML=html;scrollTo(0,0)};
+const $=id=>document.getElementById(id);
+function el(tag,cls,html){const d=document.createElement(tag);d.className=cls;d.innerHTML=html;return d}
+function shakeEl(x){x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake')}
+const bar=(t='')=>`<header><button class="soft icon" onclick="goHome()">${ico('home')}</button><span>${t}</span><span style="width:56px"></span></header>`;
+// 단계 진행 큐
+let Q=[],K=0;
+function run(steps){Q=steps;K=0;NEXT()}
+function NEXT(){if(K<Q.length)Q[K++]()}
+function insert(fns){Q.splice(K,0,...fns);NEXT()}
+
+function goHome(){
+  const t=today(),due=learned().filter(h=>S.cards[h].due<=t).length,g=nextGroup(),newOk=g&&S.lastNew!==t;
+  const info=[];if(due)info.push(`복습 ${due}개`);if(newOk)info.push(`새 역: ${g.name}`);if(!g)info.push('모든 역 도착! 🏆');
+  const map=['1A','1B','2','3','4','5'].map(st=>`<div class="stage"><h3>${st}단계</h3><div class="track">${GROUPS.filter(x=>x.stage===st).map(stn).join('')}</div></div>`).join('');
+  view(`<header><span>${ico('train')} 한자 기차여행</span><span>${ico('star')} ${S.done.length}/${GROUPS.length}</span><span><button class="soft icon" onclick="toggleMusic()">${musicOn()?'🎵':'🔇'}</button> <button class="soft icon" onclick="parentView()">⚙</button></span></header>
+  <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
+  <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
+  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
+}
+function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
+  return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} ${!done&&!cur?'lock':''}" ${done?`onclick="replay(${g.i})"`:cur?'onclick="startSession(true)"':''}><span class="hj">${done||cur?g.chars[0]:'🔒'}</span><small>${g.name}</small></div>`}
+
+function startSession(force){
+  const t=today(),due=shuffle(learned().filter(h=>S.cards[h].due<=t)).slice(0,6),g=nextGroup(),doNew=!!g&&(S.lastNew!==t||force),st=[];
+  if(due.length){st.push(()=>banner('🔁 복습 시간','전에 배운 글자, 기억나?'));due.forEach(h=>st.push(()=>review(h,true)))}
+  if(doNew)st.push(...lesson(g,true));
+  if(!due.length&&!doNew){const L=shuffle(learned()).slice(0,5);if(!L.length)return goHome();st.push(()=>banner('💪 연습','배운 글자로 연습해요!'));L.forEach(h=>st.push(()=>review(h,false)))}
+  st.push(()=>finish(doNew?g:null,false));
+  run(st);
+}
+function replay(i){run([...lesson(GROUPS[i],false),()=>finish(null,true)])}
+
+function lesson(g,isNew){
+  const st=[()=>banner(`${ico('station')} ${g.name} 역`,`새 글자 ${g.chars.length}개를 만나요!`)];
+  g.chars.forEach(h=>st.push(()=>intro(h)));
+  st.push(()=>{g.chars.forEach(learnInit);save();NEXT()});
+  const c=g.chars,half=Math.ceil(c.length/2);
+  (c.length>4?[c.slice(0,half),c.slice(half)]:[c]).forEach(r=>st.push(()=>match(fill(r,3))));
+  c.forEach(h=>st.push(()=>pickWord(h,null)));
+  st.push(()=>{const set=new Set(c);
+    const cs=shuffle(COMBO.filter(x=>[...x[0]].some(h=>set.has(h))&&comboReady(x))).slice(0,2);
+    const sm=SIM.filter(s=>[...s].some(h=>set.has(h))&&[...s].every(h=>S.cards[h])).slice(0,2);
+    insert([...cs.map(x=>()=>lego(x)),...sm.map(s=>()=>similar(s))])});
+  if(isNew)st.push(()=>{if(!S.done.includes(g.i))S.done.push(g.i);S.lastNew=today();save();NEXT()});
+  return st;
+}
+function fill(r,n){const extra=shuffle(learned().filter(h=>!r.includes(h))).slice(0,Math.max(0,n-r.length));return [...r,...extra]}
+
+function banner(t,s){view(bar()+`<div class="title" style="font-size:44px;margin-top:40px">${t}</div><div class="sub">${s}</div><button class="big-btn" onclick="NEXT()">시작 ▶</button>`);say(s)}
+
+function intro(h){const c=CH[h];
+  view(bar(GROUPS[c.g].name)+`<div class="morph">${c.emoji?`<span class="e">${pic(c.emoji)}</span>`:''}<span class="h hj">${h}</span></div>
+  <div class="title">${c.hun}</div><div class="words">${c.words.map(w=>`<span>${mark(w)}</span>`).join('')}</div>
+  <div class="row"><button class="soft" id="again">🔊 다시 듣기</button><button id="go">다음 ▶</button></div>`);
+  const talk=()=>sayList([c.hun,...c.words.map(plain)]);
+  setTimeout(()=>sfx('magic'),1300);setTimeout(talk,c.emoji?3000:800);$('again').onclick=talk;$('go').onclick=NEXT}
+
+function match(chars){let left=chars.length,sel=null;
+  const lab=h=>{const e=CH[h].emoji;return e&&chars.filter(x=>CH[x].emoji===e).length===1?[pic(e),'']:[CH[h].hun,' txt']};
+  view(bar('짝 맞추기')+`<div class="title">그림과 한자를 짝지어요!</div><div class="grid" id="A" style="--n:${chars.length}"></div><div class="grid" id="B" style="--n:${chars.length}"></div>`);
+  const mk=(box,h,isH)=>{const [html,cls]=isH?[h,' hj']:lab(h);const c=el('div','card'+cls,html+'<small></small>');c.h=h;c.isH=isH;c.onclick=()=>tap(c);$(box).append(c)};
+  shuffle(chars).forEach(h=>mk('A',h,false));shuffle(chars).forEach(h=>mk('B',h,true));
+  function tap(c){
+    if(!sel||sel.isH===c.isH){sel?.classList.remove('sel');sel=c;c.classList.add('sel');sfx('tap');return}
+    const a=sel;sel=null;a.classList.remove('sel');
+    if(a.h===c.h){sfx('ok');a.classList.add('ok');c.classList.add('ok');(c.isH?c:a).querySelector('small').textContent=CH[c.h].hun;say(CH[c.h].hun);if(--left===0)setTimeout(NEXT,1400)}
+    else{sfx('no');shakeEl(a);shakeEl(c);say('다시 찾아볼까?')}}}
+
+// 고르기 공용: 틀리면 그 보기를 흐리게 → 남은 것 중 다시 고르기
+function choice(o){let first=true,done=false;
+  view(bar(o.head)+`<div class="title">${o.title}</div><div class="prompt ${o.bigCls||''}">${o.big}</div>${o.speak?'<button class="soft icon" id="spk">🔊</button>':''}<div class="grid" id="O" style="--n:${o.opts.length}"></div>`);
+  if(o.speak){const s=()=>say(o.speak);$('spk').onclick=s;setTimeout(s,300)}
+  shuffle(o.opts).forEach(op=>{const c=el('div','card '+(op.cls||''),op.html);
+    c.onclick=()=>{if(done)return;
+      if(op.ok){done=true;sfx('ok');c.classList.add('ok');if(op.after)c.innerHTML=op.after;say(o.okSay||pick(PRAISE));o.onAnswer&&o.onAnswer(first);setTimeout(NEXT,1500)}
+      else{first=false;sfx('no');shakeEl(c);c.classList.add('dim');say('다시 찾아볼까?')}};
+    $('O').append(c)})}
+function others(h,n){const L=learned().filter(x=>x!==h);return shuffle(L.length>=n?L:Object.keys(CH).filter(x=>x!==h)).slice(0,n)}
+function review(h,graded){(Math.random()<.5?pickHanja:pickWord)(h,graded?ok=>grade(h,ok):null)}
+function pickHanja(h,on){const c=CH[h];
+  choice({head:'글자 찾기',title:'이 글자를 찾아봐!',big:c.hun,bigCls:'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on})}
+function pickWord(h,on){const c=CH[h],right=pick(c.words),L=learned().filter(x=>x!==h);
+  const ds=distractWords(h,2,L.length>=3?L:Object.keys(CH));
+  choice({head:'단어 찾기',title:'이 글자가 들어간 말은?',big:h,bigCls:'hj',opts:[{html:plain(right),cls:'txt',ok:true,after:mark(right)+`<small>${c.hun}</small>`},...ds.map(w=>({html:plain(w),cls:'txt'}))],onAnswer:on,okSay:`${plain(right)}! ${c.hun}`})}
+function similar(s){const t=pick([...s]);
+  choice({head:'닮은꼴 찾기',title:'👀 닮은꼴! 어느 것일까?',big:CH[t].hun,bigCls:'txt',speak:CH[t].hun,opts:[...s].map(x=>({html:x,cls:'hj',ok:x===t})),okSay:CH[t].hun})}
+
+function lego([hz,rd,hint]){const need=[...hz];let k=0;
+  const extra=shuffle(learned().filter(x=>!need.includes(x))).slice(0,2),tiles=shuffle([...need,...extra]);
+  view(bar('한자 레고')+`<div class="title" id="lt">🧱 글자를 합쳐서 「${rd}」 만들기!</div><div class="sub">${hint}</div>
+  <div class="slots">${need.map((_,i)=>`<div class="slot hj" id="s${i}"></div>`).join('')}</div><div class="grid" id="T" style="--n:${tiles.length}"></div>`);
+  say(`${rd}, 만들어 볼까?`);
+  tiles.forEach(x=>{const t=el('div','card hj',x+`<small>${CH[x].hun}</small>`);
+    t.onclick=()=>{if(k>=need.length)return;
+      if(x===need[k]){sfx('pop');$('s'+k).textContent=x;t.classList.add('ok');say(CH[x].hun);
+        if(++k===need.length)setTimeout(()=>{sfx('magic');$('lt').innerHTML=`🎉 <span class="hj">${hz}</span> = ${rd}`;say(`${rd}! ${hint}`);setTimeout(NEXT,2400)},700)}
+      else{sfx('no');shakeEl(t);say('다른 글자일까?')}};
+    $('T').append(t)})}
+
+function finish(g,isReplay){
+  if(g){const m=g.mission;
+    view(bar()+`<div class="title">스티커를 받았어!</div><div class="sticker">${pic(firstEmoji(g))}</div><div class="title hj">${g.chars.join(' ')}</div>
+    <div class="panel" style="text-align:center">🔎 오늘의 미션<br>${m}</div><button class="big-btn" onclick="goHome()">기차역으로 🚂</button>`);
+    sfx('win');sayList(['스티커를 받았어!','오늘의 미션',m])}
+  else{view(bar()+`<div class="title">${isReplay?'다시 보기 끝!':'오늘도 잘했어! 🎉'}</div><div class="sticker">${ico('trophy')}</div><button class="big-btn" onclick="goHome()">기차역으로 🚂</button>`);sfx('win');say('잘했어!')}}
+
+function detective(){const set=pick(HOMO),items=shuffle(set.bins.flatMap((b,bi)=>b[3].map(w=>({w,bi})))).slice(0,6);let k=0,busy=false;
+  view(bar('동음 탐정')+`<div class="title">🔍 「${set.s}」는 다 같은 「${set.s}」일까?</div><div class="prompt txt" id="W"></div>
+  <div class="bins" style="--n:${set.bins.length}">${set.bins.map((b,i)=>`<div class="bin" id="b${i}"><span class="e">${b[1]}</span>${b[2]}<span class="got"></span></div>`).join('')}</div><div id="end"></div>`);
+  const show=()=>{if(k>=items.length)return end();$('W').innerHTML=items[k].w.replace(set.s,`<b class="k">${set.s}</b>`);say(items[k].w);busy=false};
+  set.bins.forEach((b,i)=>$('b'+i).onclick=e=>{if(busy||k>=items.length)return;const x=e.currentTarget;
+    if(items[k].bi===i){busy=true;sfx('ok');const got=x.querySelector('.got');got.textContent+=(got.textContent?' · ':'')+items[k].w;say(`맞아! ${items[k].w}의 ${set.s}는 ${b[2]}`);k++;setTimeout(show,1800)}
+    else{sfx('no');shakeEl(x);say('음, 다른 뜻일까?')}});
+  function end(){sfx('win');$('W').textContent='🎉 소리는 같아도 글자는 달라요!';set.bins.forEach((b,i)=>$('b'+i).querySelector('.e').innerHTML=`<span class="hj">${b[0]}</span>`);
+    say('소리는 같아도 글자는 달라요!');$('end').innerHTML='<div class="row"><button onclick="detective()">한 번 더</button><button class="soft" onclick="goHome()">기차역으로</button></div>'}
+  show()}
+
+function book(){view(bar('스티커북')+`<div class="book">${GROUPS.map(g=>{const d=S.done.includes(g.i);
+  return `<div class="${d?(mastered(g)?'gold':''):'no'}"><b>${d?pic(firstEmoji(g)):'❔'}</b><span class="hj">${d?g.chars.join(''):''}</span><br>${g.name}</div>`}).join('')}</div><div class="sub">⭐ 금테두리 = 복습까지 완벽!</div>`)}
+
+function parentView(){const t=today();
+  const rows=['1A','1B','2','3','4','5'].map(s=>{const gs=GROUPS.filter(g=>g.stage===s),d=gs.filter(g=>S.done.includes(g.i)),m=d.filter(mastered).length;
+    return `<tr><td>${s}단계</td><td style="width:45%"><div class="bar"><i style="width:${d.length/gs.length*100}%"></i></div></td><td>${d.length}/${gs.length}역 · 완벽 ${m}</td></tr>`}).join('');
+  const weak=learned().filter(h=>S.cards[h].wrong).sort((a,b)=>S.cards[b].wrong-S.cards[a].wrong).slice(0,8);
+  view(bar('부모 화면')+`<div class="panel"><table>${rows}</table></div>
+  <div class="panel">배운 글자 ${learned().length}/${Object.keys(CH).length} · 오늘 복습 ${learned().filter(h=>S.cards[h].due<=t).length}개<br>자주 틀린 글자: <span class="hj">${weak.map(h=>`${h}(${S.cards[h].wrong})`).join(' ')||'없음'}</span></div>
+  <div class="panel">하루 새 역 1개가 기본. 더 하려면 홈의 「➕ 새 역 하나 더」.<br>복습 간격: 1일 → 3일 → 7일 → 14일 → 30일. 틀리면 다음 날 다시.<br>역 금테두리 = 모든 글자를 복습에서 두 번 이상 맞힘.</div>
+  <div class="row"><button class="soft" onclick="S.off++;save();parentView()">⏩ 하루 지나기 (테스트)</button><button class="soft" id="rs">처음부터 다시</button></div>`);
+  const rs=$('rs');rs.onclick=()=>{if(rs.dataset.k){S=fresh();save();goHome()}else{rs.dataset.k=1;rs.textContent='정말요? 한 번 더 누르면 지워져요'}}}
+
+load();goHome();
+</script>
+</body>
+</html>
