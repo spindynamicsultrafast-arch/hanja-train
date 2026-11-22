@@ -41,6 +41,16 @@ button.icon{padding:8px 14px;font-size:24px}
 .card.sel{border-color:var(--sel);transform:translateY(-6px)}
 .card.ok{background:#eaf7d9;box-shadow:0 6px 0 #b9dc8f;pointer-events:none}
 .card.dim{opacity:.35;pointer-events:none}
+.lines{position:relative;display:flex;justify-content:space-between;width:100%;max-width:720px;touch-action:none}
+.lines .col{display:flex;flex-direction:column;gap:14px;width:34%}
+.lines svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
+.lines line{stroke:var(--sel);stroke-width:8;stroke-linecap:round;stroke-dasharray:2 14}
+.lines line.ok{stroke:var(--ok);stroke-dasharray:none}
+.mem .face,.mem .up .back{display:none}
+.mem .up .face{display:contents}
+.mem .card{min-height:110px}
+.mem .card.up{animation:flip .25s}
+@keyframes flip{0%{transform:scaleX(0)}}
 .shake{animation:shake .4s}
 @keyframes shake{25%{transform:translateX(-10px)}50%{transform:translateX(10px)}75%{transform:translateX(-6px)}}
 .prompt{font-size:clamp(70px,16vw,150px);line-height:1.1;text-align:center}
@@ -357,7 +367,7 @@ function goHome(){
   view(`<header><span>${ico('train')} 한자 기차여행</span><span>${ico('star')} ${S.done.length}/${GROUPS.length}</span><span><button class="soft icon" onclick="toggleMusic()">${musicOn()?'🎵':'🔇'}</button> <button class="soft icon" onclick="parentView()">⚙</button></span></header>
   <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
   <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
-  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
+  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
 }
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
   return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} ${!done&&!cur?'lock':''}" ${done?`onclick="replay(${g.i})"`:cur?'onclick="startSession(true)"':''}><span class="hj">${done||cur?g.chars[0]:'🔒'}</span><small>${g.name}</small></div>`}
@@ -391,23 +401,45 @@ function fill(r,n){const extra=shuffle(learned().filter(h=>!r.includes(h))).slic
 
 function banner(t,s){view(bar()+`<div class="title" style="font-size:44px;margin-top:40px">${t}</div><div class="sub">${s}</div><button class="big-btn" onclick="NEXT()">시작 ▶</button>`);say(s)}
 
-function intro(h){const c=CH[h];
+function intro(h){const c=CH[h],ws=shuffle(c.words).slice(0,2+(Math.random()<.5));
   view(bar(GROUPS[c.g].name)+`<div class="morph">${c.emoji?`<span class="e">${pic(c.emoji)}</span>`:''}<span class="h hj">${h}</span></div>
-  <div class="title">${c.hun}</div><div class="words">${c.words.slice(0,6).map(w=>`<span>${mark(w)}</span>`).join('')}</div>
+  <div class="title">${c.hun}</div><div class="words">${ws.map(w=>`<span>${mark(w)}</span>`).join('')}</div>
   <div class="row"><button class="soft" id="again">🔊 다시 듣기</button><button id="go">다음 ▶</button></div>`);
-  const talk=()=>sayList([c.hun,...c.words.slice(0,3).map(plain)]);
+  const talk=()=>sayList([c.hun,...ws.map(plain)]);
   setTimeout(()=>sfx('magic'),1300);setTimeout(talk,c.emoji?3000:800);$('again').onclick=talk;$('go').onclick=NEXT}
 
-function match(chars){let left=chars.length,sel=null;
-  const lab=h=>{const e=CH[h].emoji;return e&&chars.filter(x=>CH[x].emoji===e).length===1?[pic(e),'']:[CH[h].hun,' txt']};
-  view(bar('짝 맞추기')+`<div class="title">그림과 한자를 짝지어요!</div><div class="grid" id="A" style="--n:${chars.length}"></div><div class="grid" id="B" style="--n:${chars.length}"></div>`);
-  const mk=(box,h,isH)=>{const [html,cls]=isH?[h,' hj']:lab(h);const c=el('div','card'+cls,html+'<small></small>');c.h=h;c.isH=isH;c.onclick=()=>tap(c);$(box).append(c)};
+// 그림 = 왼쪽, 한자 = 오른쪽. 끌어서 선 긋기, 또는 하나씩 톡톡 눌러도 이어짐
+const label=(h,set)=>{const e=CH[h].emoji;return e&&set.filter(x=>CH[x].emoji===e).length===1?[pic(e),'']:[CH[h].hun,' txt']};
+function match(chars){let left=chars.length,sel=null,drag=null;
+  view(bar('짝 맞추기')+`<div class="title">그림과 한자를 선으로 이어요!</div><div class="lines" id="M"><svg id="L"></svg><div class="col" id="A"></div><div class="col" id="B"></div></div>`);
+  const M=$('M'),L=$('L');
+  const mk=(box,h,isH)=>{const [html,cls]=isH?[h,' hj']:label(h,chars);const c=el('div','card'+cls,html+'<small></small>');c.h=h;c.isH=isH;c.onpointerdown=e=>down(e,c);$(box).append(c)};
   shuffle(chars).forEach(h=>mk('A',h,false));shuffle(chars).forEach(h=>mk('B',h,true));
-  function tap(c){
-    if(!sel||sel.isH===c.isH){sel?.classList.remove('sel');sel=c;c.classList.add('sel');sfx('tap');return}
-    const a=sel;sel=null;a.classList.remove('sel');
-    if(a.h===c.h){sfx('ok');a.classList.add('ok');c.classList.add('ok');(c.isH?c:a).querySelector('small').textContent=CH[c.h].hun;say(CH[c.h].hun);if(--left===0)setTimeout(NEXT,1400)}
+  const rel=(x,y)=>{const m=M.getBoundingClientRect();return [x-m.left,y-m.top]};
+  const dot=c=>{const r=c.getBoundingClientRect();return rel(c.isH?r.left:r.right,r.top+r.height/2)};
+  const line=(a,[x2,y2],cls='')=>{const [x1,y1]=dot(a),l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    Object.entries({x1,y1,x2,y2,class:cls}).forEach(([k,v])=>l.setAttribute(k,v));L.append(l);return l};
+  function down(e,c){e.preventDefault();if(c.classList.contains('ok'))return;
+    if(sel&&sel.isH!==c.isH)return check(sel,c);
+    sel?.classList.remove('sel');sel=c;c.classList.add('sel');sfx('tap');
+    drag?.remove();drag=line(c,rel(e.clientX,e.clientY));drag.c=c}
+  onpointermove=e=>{if(!drag)return;const [x,y]=rel(e.clientX,e.clientY);drag.setAttribute('x2',x);drag.setAttribute('y2',y)};
+  onpointerup=onpointercancel=e=>{if(!drag)return;const c=drag.c;drag.remove();drag=null;
+    const t=document.elementFromPoint(e.clientX,e.clientY)?.closest('.card');if(t&&t.isH!==undefined&&t.isH!==c.isH&&!t.classList.contains('ok'))check(c,t)};
+  function check(a,c){sel=null;a.classList.remove('sel');
+    if(a.h===c.h){sfx('ok');a.classList.add('ok');c.classList.add('ok');line(a.isH?c:a,dot(a.isH?a:c),'ok');(c.isH?c:a).querySelector('small').textContent=CH[c.h].hun;say(CH[c.h].hun);if(--left===0)setTimeout(NEXT,1400)}
     else{sfx('no');shakeEl(a);shakeEl(c);say('다시 찾아볼까?')}}}
+
+// 카드 뒤집기: 그림 카드와 한자 카드 짝 찾기 (자유 놀이, 채점 안 함)
+function memory(){const L=learned(),pool=shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,6);let open=[],left=pool.length,busy=false;
+  view(bar('카드 뒤집기')+`<div class="title">그림과 한자 짝을 찾아요!</div><div class="grid mem" id="G" style="--n:4"></div><div id="end"></div>`);
+  shuffle(pool.flatMap(h=>[[h,true],[h,false]])).forEach(([h,isH])=>{const [html,cls]=isH?[h,' hj']:label(h,pool);
+    const c=el('div','card'+cls,`<span class="back">${ico('train')}</span><span class="face">${html}</span>`);c.h=h;c.isH=isH;c.onclick=()=>flip(c);$('G').append(c)});
+  function flip(c){if(busy||c.classList.contains('up'))return;c.classList.add('up');sfx('tap');open.push(c);if(open.length<2)return;
+    const [a,b]=open;open=[];
+    if(a.h===b.h){sfx('ok');a.classList.add('ok');b.classList.add('ok');say(CH[a.h].hun);if(--left===0)end()}
+    else{busy=true;setTimeout(()=>{a.classList.remove('up');b.classList.remove('up');busy=false},1100)}}
+  function end(){setTimeout(()=>{sfx('win');say('다 찾았어!');$('end').innerHTML='<div class="row"><button onclick="memory()">한 번 더</button><button class="soft" onclick="goHome()">기차역으로</button></div>'},1200)}}
 
 // 고르기 공용: 틀리면 그 보기를 흐리게 → 남은 것 중 다시 고르기
 function choice(o){let first=true,done=false;
