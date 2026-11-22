@@ -41,6 +41,29 @@ button.icon{padding:8px 14px;font-size:24px}
 .card.sel{border-color:var(--sel);transform:translateY(-6px)}
 .card.ok{background:#eaf7d9;box-shadow:0 6px 0 #b9dc8f;pointer-events:none}
 .card.dim{opacity:.35;pointer-events:none}
+/* 풍선 터뜨리기 */
+.sky{position:relative;width:100%;height:60vh;overflow:hidden;border-radius:24px;background:linear-gradient(#cfeaff,#fff7e6);touch-action:none}
+.balloon{position:absolute;bottom:-140px;width:96px;height:116px;border-radius:50% 50% 48% 48%/58% 58% 42% 42%;display:flex;align-items:center;justify-content:center;font-size:52px;color:#fff;cursor:pointer;animation:rise 7s linear forwards;box-shadow:inset -10px -12px 0 rgba(0,0,0,.12);text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.balloon::after{content:'';position:absolute;top:100%;left:50%;width:2px;height:40px;background:#999}
+@keyframes rise{to{transform:translateY(calc(-60vh - 220px))}}
+.balloon.pop{animation-play-state:paused;opacity:0;transition:opacity .3s}
+#BT .hj{font-size:56px;vertical-align:middle}
+.balloon.no{filter:grayscale(1);opacity:.6}
+/* 기차에 싣기 */
+.train{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding-bottom:20px}
+.car{width:130px;height:120px;background:#ffd36b;border-radius:16px 16px 8px 8px;border:4px solid #e2a93b;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
+.car::before,.car::after{content:'';position:absolute;bottom:-20px;width:30px;height:30px;border-radius:50%;background:#555}
+.car::before{left:14px}.car::after{right:14px}
+.car img.pic{width:58px;height:58px}
+.car .load{font-size:46px;min-height:1.1em;line-height:1}
+.car.ok{background:#c9ef9f;border-color:var(--ok)}
+#TL{touch-action:none}
+.ghost{position:fixed;pointer-events:none;font-size:60px;transform:translate(-50%,-50%);z-index:9;opacity:.8}
+/* 홈: 길어지는 기차 */
+.mytrain{display:flex;gap:5px;overflow-x:auto;width:100%;padding:4px 0 16px;align-items:flex-end}
+.mytrain .c{flex:0 0 auto;width:54px;height:44px;border-radius:10px 10px 4px 4px;display:flex;align-items:center;justify-content:center;font-size:26px;border:3px solid rgba(0,0,0,.12);position:relative}
+.mytrain .c::after{content:'● ●';position:absolute;bottom:-15px;left:0;right:0;text-align:center;font-size:12px;color:#555;letter-spacing:8px}
+.mytrain .eng{flex:0 0 auto}.mytrain .eng img.pic{width:76px;height:76px}
 .lines{position:relative;display:flex;justify-content:space-between;width:100%;max-width:720px;touch-action:none}
 .lines .col{display:flex;flex-direction:column;gap:14px;width:34%}
 .lines svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:1}
@@ -156,6 +179,7 @@ const HOMO = [
 {s:'원',bins:[['園','🎠','노는 동산',['유치원','공원','동물원','식물원']],['院','🏥','돌봐 주는 집',['병원','학원']]]},
 {s:'동',bins:[['動','🤸','움직임',['동물','운동','자동차']],['同','👫','같음',['동생','동시']],['東','🌅','해 뜨는 쪽',['동쪽','동해','동대문']]]},
 {s:'공',bins:[['公','🏞️','모두의',['공원','공평']],['空','✈️','하늘·빈',['공기','공항','공책']],['工','🏭','만들기',['공장','공사']]]},
+{s:'자',bins:[['子','👶','아이',['왕자','여자','남자']],['自','🚗','스스로',['자동차','자전거']],['字','🔤','글자',['숫자','한자']]]},
 {s:'소',bins:[['小','🐭','작은',['소아과','최소']],['少','🤏','적은·어린',['소년','소녀']],['消','🧯','불 끄기',['소방차','소화기']]]},
 ];
 
@@ -368,7 +392,7 @@ addEventListener('pointerdown',()=>{if(AC&&AC.state==='suspended')AC.resume();if
 const ico=k=>`<img class="pic" src="img/ui_${k}.webp" alt="">`;
 const pic=e=>e&&e.startsWith('img/')?`<img class="pic" src="${e}" alt="">`:(e||'');
 addEventListener('pointerdown',()=>document.documentElement.requestFullscreen?.().catch(()=>{}),{once:true});
-const view=html=>{$app.innerHTML=html;scrollTo(0,0)};
+const view=html=>{document.querySelectorAll('.ghost').forEach(g=>g.remove());$app.innerHTML=html;scrollTo(0,0)};
 const $=id=>document.getElementById(id);
 function el(tag,cls,html){const d=document.createElement(tag);d.className=cls;d.innerHTML=html;return d}
 function shakeEl(x){x.classList.remove('shake');void x.offsetWidth;x.classList.add('shake')}
@@ -384,9 +408,11 @@ function goHome(){
   const info=[];if(due)info.push(`복습 ${due}개`);if(newOk)info.push(`새 역: ${g.name}`);if(!g)info.push('모든 역 도착! 🏆');
   const map=STAGES.map(([st,lab])=>`<div class="stage"><h3>${lab}</h3><div class="track">${GROUPS.filter(x=>x.stage===st).map(stn).join('')}</div></div>`).join('');
   view(`<header><span>${ico('train')} 한자 기차여행</span><span>${ico('star')} ${S.done.length}/${GROUPS.length}</span><span><button class="soft icon" onclick="toggleMusic()">${musicOn()?'🎵':'🔇'}</button> <button class="soft icon" onclick="parentView()">⚙</button></span></header>
+  <div class="mytrain" id="MT">${S.done.map((i,j)=>`<div class="c hj" style="background:hsl(${j*47%360} 70% 80%)">${GROUPS[i].chars[0]}</div>`).join('')}<div class="eng">${ico('train')}</div></div>
   <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
   <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
   <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="lineGame()">✏️ 선 긋기</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
+  $('MT').scrollLeft=1e5;
 }
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
   return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} " onclick="${cur?'startSession(true)':`replay(${g.i})`}"><span class="hj">${g.chars[0]}</span><small>${g.name}</small></div>`}
@@ -401,8 +427,8 @@ function begin(g,isNew){const set=g?[...g.chars]:learned().slice(-4);if(!set.len
   SES={start:Date.now(),g,isNew,n:0,set};run(day(true))}
 function again(){SES.n++;run(day(false))}
 // 하루 = 소개 → 학습 → 복습 → 놀이. 오늘 글자가 네 단계 모두에 나오고, 지난 역 1자를 섞음
-const LEARN=[c=>[()=>match(c)],c=>shuffle(c).map(h=>()=>pickHanja(h,null))];
-const PLAY=[c=>[()=>memory(c)]];
+const LEARN=[c=>[()=>match(c)],c=>shuffle(c).map(h=>()=>soundPick(h,null)),c=>[()=>trainLoad(c)]];
+const PLAY=[c=>[()=>memory(c)],c=>[()=>balloon(c)]];
 function day(first){const {g,isNew,set}=SES,st=[],pv=g&&g.i>0?GROUPS[g.i-1].chars.filter(h=>S.cards[h]):[],prev=pv.length?pick(pv):null,mix=prev?[...set,prev]:set;
   if(first&&g){st.push(()=>banner(`${ico('station')} ${g.name} 역`,`새 글자 ${g.chars.length}개를 만나요!`));g.chars.forEach(h=>st.push(()=>intro(h)));st.push(()=>{g.chars.forEach(learnInit);save();NEXT()})}
   st.push(...LEARN[SES.n%LEARN.length](mix));
@@ -482,11 +508,52 @@ function others(h,n){const L=learned().filter(x=>x!==h);return shuffle(L.length>
 function review(h,graded){const b=S.cards[h]?.box||0,on=graded?ok=>grade(h,ok):null,cb=COMBO.find(x=>x[0].includes(h)&&comboReady(x));
   if(b<=1)return pick([picPick,pickHanja])(h,on);
   if(b===2)return meanPick(h,on);
-  if(b===3)return pickWord(h,on);
+  if(b===3)return pick([pickWord,basket])(h,on);
   if(cb&&Math.random()<.3){on&&on(true);return lego(cb)}
-  return (SENT[h]?pick([cloze,pickWord]):pickWord)(h,on)}
+  return pick(SENT[h]?[cloze,guess,pickWord]:[guess,pickWord])(h,on)}
 function picPick(h,on){const c=CH[h];
   choice({head:'그림 보고 고르기',title:'이 그림은 어떤 한자일까?',big:c.emoji?pic(c.emoji):c.hun,bigCls:c.emoji?'':'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on,okSay:c.hun})}
+// 소리만 듣고 고르기 (글자 힌트 없음)
+function soundPick(h,on){const c=CH[h];
+  choice({head:'소리 듣고 고르기',title:'잘 듣고 한자를 골라요',big:'👂',bigCls:'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on,okSay:c.hun})}
+// 처음 보는 한자어 뜻 맞히기: 아는 글자로 된 단어 → 뜻 3개 중 고르기
+function guess(h,on){const ready=COMBO.filter(x=>x[0].includes(h)&&comboReady(x));if(!ready.length)return pickWord(h,on);
+  const [hz,rd,mean]=pick(ready),ds=shuffle(COMBO.filter(x=>x[2]!==mean)).slice(0,2).map(x=>x[2]);
+  choice({head:'뜻 맞히기',title:'🔍 무슨 뜻일까?',big:`<span class="hj">${hz}</span><br><small>${rd}</small>`,bigCls:'txt',speak:rd,opts:[{html:mean,cls:'txt',ok:true},...ds.map(d=>({html:d,cls:'txt'}))],onAnswer:on,okSay:`${rd}, ${mean}`})}
+// 단어 가족 바구니: 두 글자 바구니에 한자어 나눠 담기 (소리가 같은 글자끼리는 짝짓지 않음)
+function basket(h,on){const ss=CH[h].words.map(syl),o=pick(learned().filter(x=>x!==h&&CH[x].words.length>=2&&!CH[x].words.some(w=>ss.includes(syl(w)))));if(!o)return pickWord(h,on);
+  const items=shuffle([...shuffle(CH[h].words).slice(0,2).map(w=>({w,h})),...shuffle(CH[o].words).slice(0,2).map(w=>({w,h:o}))]);let k=0,first=true,busy=false;
+  view(bar('단어 바구니')+`<div class="title">어느 바구니에 들어갈까?</div><div class="prompt txt" id="W"></div><div class="bins" style="--n:2">${shuffle([h,o]).map(x=>`<div class="bin" data-h="${x}"><span class="e hj">${x}</span>${CH[x].hun}<span class="got"></span></div>`).join('')}</div>`);
+  const show=()=>{if(k>=items.length){on&&on(first);sfx('win');return setTimeout(NEXT,1200)}$('W').innerHTML=mark(items[k].w);say(plain(items[k].w));busy=false};
+  document.querySelectorAll('.bin').forEach(b=>b.onclick=()=>{if(busy||k>=items.length)return;
+    if(b.dataset.h===items[k].h){busy=true;sfx('ok');const g=b.querySelector('.got');g.textContent+=(g.textContent?' · ':'')+plain(items[k].w);k++;setTimeout(show,900)}
+    else{first=false;sfx('no');shakeEl(b);say('다른 바구니일까?')}});
+  show()}
+// 기차에 싣기: 그림 칸에 맞는 한자를 끌어다(또는 눌러서) 싣기
+function trainLoad(chars){let left=chars.length,sel=null,gh=null;
+  view(bar('기차에 싣기')+`<div class="title">그림 칸에 맞는 한자를 실어요!</div><div class="train" id="TR"></div><div class="grid" id="TL" style="--n:${chars.length}"></div>`);
+  say('그림 칸에 맞는 한자를 실어요');
+  shuffle(chars).forEach(h=>{const [html,cls]=label(h,chars),c=el('div','car'+cls,`<span class="load hj"></span>${html}`);c.h=h;c.onclick=()=>sel&&drop(sel,c);$('TR').append(c)});
+  shuffle(chars).forEach(h=>{const t=el('div','card hj',h);t.h=h;
+    t.onpointerdown=e=>{e.preventDefault();if(t.classList.contains('ok'))return;sel?.classList.remove('sel');sel=t;t.classList.add('sel');sfx('tap');
+      gh=el('div','ghost hj',h);gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px';document.body.append(gh)};$('TL').append(t)});
+  onpointermove=e=>{if(gh){gh.style.left=e.clientX+'px';gh.style.top=e.clientY+'px'}};
+  onpointerup=onpointercancel=e=>{if(!gh)return;gh.remove();gh=null;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest('.car');if(c&&sel)drop(sel,c)};
+  function drop(t,c){if(c.classList.contains('ok'))return;
+    if(t.h===c.h){sfx('ok');c.classList.add('ok');c.querySelector('.load').textContent=t.h;t.classList.add('ok');t.classList.remove('sel');sel=null;say(CH[t.h].hun);if(--left===0)setTimeout(()=>{sfx('win');NEXT()},1400)}
+    else{sfx('no');shakeEl(c);say('다른 칸일까?')}}}
+// 풍선 터뜨리기: 말해 주는 한자 풍선만 터뜨리기. 글자마다 두 번
+function balloon(chars){const tg=shuffle([...chars,...chars]).slice(0,6);let k=0,n=0,alive=true;
+  view(bar('풍선 터뜨리기')+`<div class="title" id="BT"></div><div class="sky" id="SK"></div>`);
+  const ask=()=>{const h=tg[k];$('BT').innerHTML=`<span class="hj">${h}</span> 풍선을 터뜨려요! <small>${k+1}/${tg.length}</small>`;say(`${CH[h].hun}, 터뜨려!`)};
+  const spawn=()=>{const sk=$('SK');if(!alive||!sk)return;n++;const h=n%3===1?tg[k]:pick(chars),b=el('div','balloon hj',h);
+    b.style.left=(4+Math.random()*72)+'%';b.style.background=`hsl(${Math.random()*360|0} 72% 60%)`;
+    b.onpointerdown=()=>{if(b.classList.contains('pop')||!alive)return;
+      if(h===tg[k]){sfx('pop');b.classList.add('pop');setTimeout(()=>b.remove(),300);
+        if(++k>=tg.length){alive=false;sfx('win');say('다 터뜨렸어!');setTimeout(NEXT,1500)}else setTimeout(ask,400)}
+      else{sfx('no');b.classList.add('no')}};
+    b.onanimationend=()=>b.remove();sk.append(b);setTimeout(spawn,1100)};
+  ask();spawn()}
 function meanPick(h,on){const set=[h,...others(h,2)];
   choice({head:'뜻 고르기',title:'이 한자는 무슨 뜻일까?',big:h,bigCls:'hj',opts:set.map(x=>{const [html,cls]=label(x,set);return {html,cls:cls.trim(),ok:x===h,after:html+`<small>${CH[x].hun}</small>`}}),onAnswer:on,okSay:CH[h].hun})}
 function pickHanja(h,on){const c=CH[h];
