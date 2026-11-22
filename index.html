@@ -367,7 +367,7 @@ function goHome(){
   view(`<header><span>${ico('train')} 한자 기차여행</span><span>${ico('star')} ${S.done.length}/${GROUPS.length}</span><span><button class="soft icon" onclick="toggleMusic()">${musicOn()?'🎵':'🔇'}</button> <button class="soft icon" onclick="parentView()">⚙</button></span></header>
   <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
   <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
-  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
+  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="lineGame()">✏️ 선 긋기</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
 }
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
   return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} ${!done&&!cur?'lock':''}" ${done?`onclick="replay(${g.i})"`:cur?'onclick="startSession(true)"':''}><span class="hj">${done||cur?g.chars[0]:'🔒'}</span><small>${g.name}</small></div>`}
@@ -429,6 +429,8 @@ function match(chars){let left=chars.length,sel=null,drag=null;
   function check(a,c){sel=null;a.classList.remove('sel');
     if(a.h===c.h){sfx('ok');a.classList.add('ok');c.classList.add('ok');line(a.isH?c:a,dot(a.isH?a:c),'ok');(c.isH?c:a).querySelector('small').textContent=CH[c.h].hun;say(CH[c.h].hun);if(--left===0)setTimeout(NEXT,1400)}
     else{sfx('no');shakeEl(a);shakeEl(c);say('다시 찾아볼까?')}}}
+
+function lineGame(){const L=learned();run([()=>match(shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,4)),()=>finish(null,false)])}
 
 // 카드 뒤집기: 그림 카드와 한자 카드 짝 찾기 (자유 놀이, 채점 안 함)
 function memory(){const L=learned(),pool=shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,6);let open=[],left=pool.length,busy=false;
