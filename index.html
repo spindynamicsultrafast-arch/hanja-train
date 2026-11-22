@@ -370,7 +370,7 @@ function goHome(){
   <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="lineGame()">✏️ 선 긋기</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
 }
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
-  return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} ${!done&&!cur?'lock':''}" ${done?`onclick="replay(${g.i})"`:cur?'onclick="startSession(true)"':''}><span class="hj">${done||cur?g.chars[0]:'🔒'}</span><small>${g.name}</small></div>`}
+  return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} " onclick="${cur?'startSession(true)':`replay(${g.i})`}"><span class="hj">${g.chars[0]}</span><small>${g.name}</small></div>`}
 
 function startSession(force){
   const t=today(),due=shuffle(learned().filter(h=>S.cards[h].due<=t)).slice(0,6),g=nextGroup(),doNew=!!g&&(S.lastNew!==t||force),st=[];
