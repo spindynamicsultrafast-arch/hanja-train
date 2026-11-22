@@ -52,6 +52,16 @@ button.icon{padding:8px 14px;font-size:24px}
 .balloon.pop{animation-play-state:paused;opacity:0;transition:opacity .3s}
 #BT .hj{font-size:56px;vertical-align:middle}
 .balloon.no{filter:grayscale(1);opacity:.6}
+/* 별 쏘기 */
+.shoot{height:62vh}
+.cloud{position:absolute;width:124px;height:86px;background:#fff;border-radius:50px;display:flex;align-items:center;justify-content:center;font-size:54px;box-shadow:0 6px 0 #dbe7f2;animation:drift 4s ease-in-out infinite alternate;cursor:pointer}
+@keyframes drift{from{transform:translateX(-30px)}to{transform:translateX(30px)}}
+.cloud.hit{animation:none;transform:scale(1.5);opacity:0;transition:.35s}
+.cloud.miss{filter:grayscale(1);opacity:.55}
+.gun{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);transition:left .25s}
+.gun img.pic{width:96px;height:96px}
+.shot{position:absolute;top:calc(100% - 96px);font-size:44px;transform:translate(-50%,-50%);transition:top .35s ease-in;pointer-events:none}
+#BT img.pic{width:56px;height:56px;vertical-align:middle}
 /* 기차에 싣기 */
 .train{display:flex;gap:14px;width:100%;justify-content:center;flex-wrap:wrap;padding-bottom:20px}
 .car{width:150px;height:var(--card-h);background:#ffd36b;border-radius:16px 16px 8px 8px;border:4px solid #e2a93b;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;cursor:pointer}
@@ -118,7 +128,7 @@ img.pic{width:1em;height:1em;object-fit:contain}
 .card img.pic{height:calc(var(--ch)*.7);width:auto;aspect-ratio:1}
 .card:has(small:not(:empty)) img.pic{height:calc(var(--ch)*.48)}
 .prompt img.pic{width:1.2em;height:1.2em}
-.row .soft{font-size:22px;padding:10px 20px}
+.row .soft{font-size:20px;padding:10px 16px}
 .row:has(.big-btn) .soft{font-size:28px;padding:18px 34px}
 .morph img.pic{width:190px;height:190px}
 .sticker img.pic{width:170px;height:170px}
@@ -421,7 +431,7 @@ function goHome(){
   <div class="mytrain" id="MT">${S.done.map((i,j)=>`<div class="c hj" style="background:hsl(${j*47%360} 70% 80%)">${GROUPS[i].chars[0]}</div>`).join('')}<div class="eng">${ico('train')}</div></div>
   <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
   <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
-  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="lineGame()">✏️ 선 긋기</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
+  <div class="row"><button class="soft" onclick="detective()">${ico('find')} 동음 탐정</button><button class="soft" onclick="shootGame()">🎯 별 쏘기</button><button class="soft" onclick="lineGame()">✏️ 선 긋기</button><button class="soft" onclick="memory()">🃏 카드 뒤집기</button><button class="soft" onclick="book()">${ico('book')} 스티커북</button>${g&&!newOk?'<button class="soft" onclick="startSession(true)">➕ 새 역 하나 더</button>':''}</div>${map}`);
   $('MT').scrollLeft=1e5;
 }
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
@@ -438,7 +448,7 @@ function begin(g,isNew){const set=g?[...g.chars]:learned().slice(-4);if(!set.len
 function again(){SES.n++;run(day(false))}
 // 하루 = 소개 → 학습 → 복습 → 놀이. 오늘 글자가 네 단계 모두에 나오고, 지난 역 1자를 섞음
 const LEARN=[c=>[()=>match(c)],c=>shuffle(c).map(h=>()=>soundPick(h,null)),c=>[()=>trainLoad(c)]];
-const PLAY=[c=>[()=>memory(c)],c=>[()=>balloon(c)]];
+const PLAY=[c=>[()=>memory(c)],c=>[()=>balloon(c)],c=>[()=>shooter(c)]];
 function day(first){const {g,isNew,set}=SES,st=[],pv=g&&g.i>0?GROUPS[g.i-1].chars.filter(h=>S.cards[h]):[],prev=pv.length?pick(pv):null,mix=prev?[...set,prev]:set;
   if(first&&g){st.push(()=>banner(`${ico('station')} ${g.name} 역`,`새 글자 ${g.chars.length}개를 만나요!`));g.chars.forEach(h=>st.push(()=>intro(h)));st.push(()=>{g.chars.forEach(learnInit);save();NEXT()})}
   st.push(...LEARN[SES.n%LEARN.length](mix));
@@ -552,6 +562,26 @@ function trainLoad(chars){let left=chars.length,sel=null,gh=null;
   function drop(t,c){if(c.classList.contains('ok'))return;
     if(t.h===c.h){sfx('ok');c.classList.add('ok');c.querySelector('.load').textContent=t.h;t.classList.add('ok');t.classList.remove('sel');sel=null;say(CH[t.h].hun);if(--left===0)setTimeout(()=>{sfx('win');NEXT()},1400)}
     else{sfx('no');shakeEl(c);say('다른 칸일까?')}}}
+// 별 쏘기: 구름을 누르면 기차가 그 밑으로 가서 별을 쏨. 말해 준 한자 구름만 맞히기 (조준 필요 없음)
+function shooter(chars){const tg=shuffle([...chars,...chars]).slice(0,6);let k=0,busy=false,score=0;
+  view(bar('별 쏘기')+`<div class="title" id="BT"></div><div class="sky shoot" id="SK"><div class="gun" id="GN">${ico('train')}</div></div>`);
+  const sk=$('SK');
+  const fill=()=>{sk.querySelectorAll('.cloud').forEach(c=>c.remove());
+    shuffle([...chars,...shuffle(chars)].slice(0,6)).forEach((h,i)=>{const c=el('div','cloud hj',h);c.h=h;
+      c.style.top=(6+(i%3)*21)+'%';c.style.left=(6+Math.floor(i/3)*44+Math.random()*22)+'%';c.style.animationDelay=(-Math.random()*4)+'s';
+      c.onpointerdown=()=>shoot(c);sk.append(c)})};
+  const ask=()=>{const c=CH[tg[k]];$('BT').innerHTML=`${c.emoji?pic(c.emoji):''}<span>${c.hun}</span> 맞혀요! <small>⭐ ${score}</small>`;say(`${c.hun}, 맞혀!`)};
+  function shoot(c){if(busy||c.classList.contains('hit'))return;busy=true;
+    const r=c.getBoundingClientRect(),b=sk.getBoundingClientRect(),x=r.left+r.width/2-b.left;
+    $('GN').style.left=x+'px';const st=el('div','shot','⭐');st.style.left=x+'px';sk.append(st);sfx('tap');
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{st.style.top=(r.top+r.height/2-b.top)+'px'}));
+    setTimeout(()=>{st.remove();
+      if(c.h===tg[k]){sfx('pop');score++;c.classList.add('hit');setTimeout(()=>c.remove(),400);
+        if(++k>=tg.length){$('BT').innerHTML=`🎉 다 맞혔어! <small>⭐ ${score}</small>`;sfx('win');say('다 맞혔어!');return setTimeout(NEXT,1600)}
+        setTimeout(()=>{if(![...sk.querySelectorAll('.cloud:not(.hit)')].some(x=>x.h===tg[k]))fill();ask();busy=false},500)}
+      else{sfx('no');c.classList.add('miss');setTimeout(()=>c.classList.remove('miss'),900);busy=false}},380)}
+  fill();ask()}
+function shootGame(){const L=learned();SES=null;run([()=>shooter(shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,4)),()=>finish(null)])}
 // 풍선 터뜨리기: 말해 주는 한자 풍선만 터뜨리기. 글자마다 두 번
 function balloon(chars){const tg=shuffle([...chars,...chars]).slice(0,6);let k=0,n=0,alive=true;
   view(bar('풍선 터뜨리기')+`<div class="title" id="BT"></div><div class="sky" id="SK"></div>`);
