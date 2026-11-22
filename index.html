@@ -325,7 +325,7 @@ const mark=w=>w.replace(/\[(.+?)\]/g,'<b class="k">$1</b>');
 const syl=w=>(w.match(/\[(.+?)\]/)||[])[1];
 const CH={};
 RAW.forEach((g,gi)=>g[3].forEach(x=>{const [h,hun,emoji,ws]=x.split('|');CH[h]={h,hun,emoji,words:ws.split(',')}}));
-// v1 초급 42자: 그림 글자와 추상 글자를 번갈아, 역당 3자 (CURRICULUM.md 16장). 나머지는 7세·초1 단계로
+// 5세부터 수준별로: 초급 42자(그림·추상 번갈아, 역당 3자) → 중급(옛 1A·1B·2·3단계 나머지) → 고급(옛 4·5단계). CURRICULUM.md 16장
 const V1=[['초급1','숫자1','一二三','계단을 오르며 一 二 三 하고 세어봐요'],['초급1','사람','人大小','큰 것과 작은 것을 찾아 "대!" "소!" 해봐요'],
  ['초급1','산과 몸','山口手','손뼉 짝짝, 박수(手)를 쳐봐요'],['초급1','숫자2','四五六','엘리베이터에서 4, 5, 6층 버튼을 찾아봐요'],
  ['초급1','달력1','日月火','달력에서 일, 월, 화를 찾아봐요'],['초급1','아이들','子女男','화장실 앞에서 男 女 표지판을 찾아봐요'],
@@ -335,11 +335,12 @@ const V1=[['초급1','숫자1','一二三','계단을 오르며 一 二 三 하�
  ['초급2','나와 밖','外自名','밖에 나가는 걸 "외출"이라고 말해봐요'],['초급2','밖에서','休車雨','자동차, 우산, 휴게소를 찾아봐요']];
 const GROUPS=V1.map(([stage,name,cs,mission])=>({stage,name,mission,chars:[...cs]}));
 const inV1=new Set(V1.flatMap(v=>[...v[2]]));
-RAW.forEach(g=>{const all=g[3].map(x=>x.split('|')[0]),rest=all.filter(h=>!inV1.has(h)),stage=['1A','1B','2'].includes(g[0])?'7세':'초1';
+RAW.forEach(g=>{const all=g[3].map(x=>x.split('|')[0]),rest=all.filter(h=>!inV1.has(h)),stage=['1A','1B','2','3'].includes(g[0])?'중급':'고급';
   for(let k=0;k<rest.length;k+=3){const cs=rest.slice(k,k+3);
     GROUPS.push({stage,name:g[1]+(rest.length>3?k/3+1:''),mission:rest.length===all.length&&all.length<=3?g[2]:`오늘 배운 ${cs.join(' ')}을 책이나 간판에서 찾아봐요`,chars:cs})}});
 GROUPS.forEach((g,i)=>{g.i=i;g.chars.forEach(h=>CH[h].g=i)});
-const STAGES=[['초급1','초급 1'],['초급2','초급 2'],['7세','7세'],['초1','초등 1']];
+// 화면엔 나이·수준 대신 기차 노선 이름만. 안쪽 구분은 누적 복습(챕터 손님)과 무료/확장 경계에만 씀
+const STAGES=[['초급1','1호선'],['초급2','2호선'],['중급','3호선'],['고급','4호선']];
 // 정답 글자와 같은 소리가 든 단어는 오답 보기에서 뺌 (생일 ↔ 日 같은 함정 방지)
 function distractWords(h,n,pool){const ss=CH[h].words.map(syl);const out=new Set();
   for(const o of shuffle(pool)) if(o!==h) for(const w of CH[o].words){if(!ss.some(s=>plain(w).includes(s)))out.add(w)}
