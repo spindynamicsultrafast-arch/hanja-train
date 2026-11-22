@@ -291,24 +291,42 @@ const plain=w=>w.replace(/[\[\]]/g,'');
 const mark=w=>w.replace(/\[(.+?)\]/g,'<b class="k">$1</b>');
 const syl=w=>(w.match(/\[(.+?)\]/)||[])[1];
 const CH={};
-const GROUPS=RAW.map((g,i)=>({i,stage:g[0],name:g[1],mission:g[2],chars:g[3].map(s=>{const [h,hun,emoji,ws]=s.split('|');CH[h]={h,hun,emoji,words:ws.split(','),g:i};return h})}));
+RAW.forEach((g,gi)=>g[3].forEach(x=>{const [h,hun,emoji,ws]=x.split('|');CH[h]={h,hun,emoji,words:ws.split(',')}}));
+// v1 초급 42자: 그림 글자와 추상 글자를 번갈아, 역당 3자 (CURRICULUM.md 16장). 나머지는 7세·초1 단계로
+const V1=[['초급1','숫자1','一二三','계단을 오르며 一 二 三 하고 세어봐요'],['초급1','사람','人大小','큰 것과 작은 것을 찾아 "대!" "소!" 해봐요'],
+ ['초급1','산과 몸','山口手','손뼉 짝짝, 박수(手)를 쳐봐요'],['초급1','숫자2','四五六','엘리베이터에서 4, 5, 6층 버튼을 찾아봐요'],
+ ['초급1','달력1','日月火','달력에서 일, 월, 화를 찾아봐요'],['초급1','아이들','子女男','화장실 앞에서 男 女 표지판을 찾아봐요'],
+ ['초급1','숫자3','七八九','손가락으로 七 八 九를 세어봐요'],['초급2','달력2','水木金','달력에서 수, 목, 금을 찾아봐요'],
+ ['초급2','드나들기','十入出','주차장에서 入口, 出口를 찾아봐요'],['초급2','위아래','上中下','엘리베이터의 위·아래 버튼을 찾아봐요'],
+ ['초급2','토요일','土門心','토요일엔 뭐 할까? 달력에서 土를 찾아봐요'],['초급2','생일','生年母','내 생일이 언제인지 엄마에게 물어봐요'],
+ ['초급2','나와 밖','外自名','밖에 나가는 걸 "외출"이라고 말해봐요'],['초급2','밖에서','休車雨','자동차, 우산, 휴게소를 찾아봐요']];
+const GROUPS=V1.map(([stage,name,cs,mission])=>({stage,name,mission,chars:[...cs]}));
+const inV1=new Set(V1.flatMap(v=>[...v[2]]));
+RAW.forEach(g=>{const all=g[3].map(x=>x.split('|')[0]),rest=all.filter(h=>!inV1.has(h)),stage=['1A','1B','2'].includes(g[0])?'7세':'초1';
+  for(let k=0;k<rest.length;k+=3){const cs=rest.slice(k,k+3);
+    GROUPS.push({stage,name:g[1]+(rest.length>3?k/3+1:''),mission:rest.length===all.length&&all.length<=3?g[2]:`오늘 배운 ${cs.join(' ')}을 책이나 간판에서 찾아봐요`,chars:cs})}});
+GROUPS.forEach((g,i)=>{g.i=i;g.chars.forEach(h=>CH[h].g=i)});
+const STAGES=[['초급1','초급 1'],['초급2','초급 2'],['7세','7세'],['초1','초등 1']];
 // 정답 글자와 같은 소리가 든 단어는 오답 보기에서 뺌 (생일 ↔ 日 같은 함정 방지)
 function distractWords(h,n,pool){const ss=CH[h].words.map(syl);const out=new Set();
   for(const o of shuffle(pool)) if(o!==h) for(const w of CH[o].words){if(!ss.some(s=>plain(w).includes(s)))out.add(w)}
   return shuffle([...out]).slice(0,n)}
-const IV=[1,3,7,14,30];
-const fresh=()=>({cards:{},done:[],lastNew:-1,off:0});
+// 글자 사다리 0~4칸: 맞히면 한 칸 위, 틀리면 한 칸 아래. 칸별 다음 복습까지 일수
+const IV=[1,1,2,4,7];
+const fresh=()=>({cards:{},done:[],lastNew:-1,off:0,ver:3});
 let S=fresh();
 const today=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5)+S.off;
 const learned=()=>Object.keys(S.cards);
-function learnInit(h){if(!S.cards[h])S.cards[h]={box:0,due:today()+1,wrong:0}}
-function grade(h,ok){const c=S.cards[h];if(!c)return;if(ok)c.box=Math.min(c.box+1,IV.length-1);else{c.box=0;c.wrong++}c.due=today()+IV[c.box];save()}
+function learnInit(h){if(!S.cards[h])S.cards[h]={box:0,due:today()+1,wrong:0,seen:today()}}
+function grade(h,ok){const c=S.cards[h];if(!c)return;c.box=ok?Math.min(c.box+1,4):Math.max(c.box-1,0);if(!ok)c.wrong++;c.seen=today();c.due=today()+IV[c.box];save()}
 const mastered=g=>g.chars.every(h=>S.cards[h]&&S.cards[h].box>=2);
-const nextGroup=()=>GROUPS[S.done.length]||null;
+const nextGroup=()=>GROUPS.find(g=>!S.done.includes(g.i))||null;
 const comboReady=c=>[...c[0]].every(h=>S.cards[h]);
 const firstEmoji=g=>g.chars.map(h=>CH[h].emoji).find(Boolean)||'⭐';
 function save(){try{localStorage.setItem('hanja-v2',JSON.stringify(S))}catch(e){}}
-function load(){try{const x=JSON.parse(localStorage.getItem('hanja-v2'));if(x&&x.cards)S=x}catch(e){}}
+function load(){try{const x=JSON.parse(localStorage.getItem('hanja-v2'));if(x&&x.cards)S=x}catch(e){}
+  // 역 재배치(v3) 이전 기록: 글자별 기록은 그대로, 역 완료는 배운 글자로 다시 계산
+  if(S.ver!==3){S.done=GROUPS.filter(g=>g.chars.every(h=>S.cards[h])).map(g=>g.i);S.ver=3;save()}}
 // ===UI===
 const $app=document.getElementById('app');
 const PRAISE=['잘했어!','맞았어!','멋져!','최고야!'];
@@ -364,7 +382,7 @@ function insert(fns){Q.splice(K,0,...fns);NEXT()}
 function goHome(){
   const t=today(),due=learned().filter(h=>S.cards[h].due<=t).length,g=nextGroup(),newOk=g&&S.lastNew!==t;
   const info=[];if(due)info.push(`복습 ${due}개`);if(newOk)info.push(`새 역: ${g.name}`);if(!g)info.push('모든 역 도착! 🏆');
-  const map=['1A','1B','2','3','4','5'].map(st=>`<div class="stage"><h3>${st}단계</h3><div class="track">${GROUPS.filter(x=>x.stage===st).map(stn).join('')}</div></div>`).join('');
+  const map=STAGES.map(([st,lab])=>`<div class="stage"><h3>${lab}</h3><div class="track">${GROUPS.filter(x=>x.stage===st).map(stn).join('')}</div></div>`).join('');
   view(`<header><span>${ico('train')} 한자 기차여행</span><span>${ico('star')} ${S.done.length}/${GROUPS.length}</span><span><button class="soft icon" onclick="toggleMusic()">${musicOn()?'🎵':'🔇'}</button> <button class="soft icon" onclick="parentView()">⚙</button></span></header>
   <button class="big-btn" onclick="startSession(false)">${due||newOk?'오늘의 한자 ▶':'연습하기 ▶'}</button>
   <div class="sub">${info.join(' · ')||'오늘 할 일 끝! 연습은 언제든 OK'}</div>
@@ -373,32 +391,32 @@ function goHome(){
 function stn(g){const done=S.done.includes(g.i),cur=nextGroup()===g;
   return `<div class="stn ${done?'done':''} ${done&&mastered(g)?'gold':''} ${cur?'cur':''} " onclick="${cur?'startSession(true)':`replay(${g.i})`}"><span class="hj">${g.chars[0]}</span><small>${g.name}</small></div>`}
 
-function startSession(force){
-  const t=today(),due=shuffle(learned().filter(h=>S.cards[h].due<=t)).slice(0,6),g=nextGroup(),doNew=!!g&&(S.lastNew!==t||force),st=[];
-  if(due.length){st.push(()=>banner('🔁 복습 시간','전에 배운 글자, 기억나?'));due.forEach(h=>st.push(()=>review(h,true)))}
-  if(doNew)st.push(...lesson(g,true));
-  if(!due.length&&!doNew){const L=shuffle(learned()).slice(0,5);if(!L.length)return goHome();st.push(()=>banner('💪 연습','배운 글자로 연습해요!'));L.forEach(h=>st.push(()=>review(h,false)))}
-  st.push(()=>finish(doNew?g:null,false));
-  run(st);
-}
-function replay(i){run([...lesson(GROUPS[i],false),()=>finish(null,true)])}
-
-function lesson(g,isNew){
-  const st=[()=>banner(`${ico('station')} ${g.name} 역`,`새 글자 ${g.chars.length}개를 만나요!`)];
-  g.chars.forEach(h=>st.push(()=>intro(h)));
-  st.push(()=>{g.chars.forEach(learnInit);save();NEXT()});
-  const c=g.chars,half=Math.ceil(c.length/2);
-  (c.length>4?[c.slice(0,half),c.slice(half)]:[c]).forEach(r=>st.push(()=>match(fill(r,3))));
-  c.forEach(h=>st.push(()=>pickWord(h,null)));
-  shuffle(c.filter(h=>SENT[h])).slice(0,2).forEach(h=>st.push(()=>cloze(h,null)));
-  st.push(()=>{const set=new Set(c);
-    const cs=shuffle(COMBO.filter(x=>[...x[0]].some(h=>set.has(h))&&comboReady(x))).slice(0,2);
-    const sm=SIM.filter(s=>[...s].some(h=>set.has(h))&&[...s].every(h=>S.cards[h])).slice(0,2);
-    insert([...cs.map(x=>()=>lego(x)),...sm.map(s=>()=>similar(s))])});
-  st.push(()=>memory(fill(c,3)));
-  if(isNew)st.push(()=>{if(!S.done.includes(g.i))S.done.push(g.i);S.lastNew=today();save();NEXT()});
-  return st;
-}
+// ponytail: 테스트 기간엔 모든 역이 열림. 출시 전 false로 → 지난 역이 모두 2칸 이상일 때 다음 역
+const TEST=true;
+const canOpen=g=>TEST||g.i===0||mastered(GROUPS[g.i-1]);
+let SES=null;
+function startSession(force){const g=nextGroup(),doNew=!!g&&canOpen(g)&&(S.lastNew!==today()||force);begin(doNew?g:null,doNew)}
+function replay(i){begin(GROUPS[i],false)}
+function begin(g,isNew){const set=g?[...g.chars]:learned().slice(-4);if(!set.length)return goHome();
+  SES={start:Date.now(),g,isNew,n:0,set};run(day(true))}
+function again(){SES.n++;run(day(false))}
+// 하루 = 소개 → 학습 → 복습 → 놀이. 오늘 글자가 네 단계 모두에 나오고, 지난 역 1자를 섞음
+const LEARN=[c=>[()=>match(c)],c=>shuffle(c).map(h=>()=>pickHanja(h,null))];
+const PLAY=[c=>[()=>memory(c)]];
+function day(first){const {g,isNew,set}=SES,st=[],pv=g&&g.i>0?GROUPS[g.i-1].chars.filter(h=>S.cards[h]):[],prev=pv.length?pick(pv):null,mix=prev?[...set,prev]:set;
+  if(first&&g){st.push(()=>banner(`${ico('station')} ${g.name} 역`,`새 글자 ${g.chars.length}개를 만나요!`));g.chars.forEach(h=>st.push(()=>intro(h)));st.push(()=>{g.chars.forEach(learnInit);save();NEXT()})}
+  st.push(...LEARN[SES.n%LEARN.length](mix));
+  if(g)shuffle(set).forEach(h=>st.push(()=>(SES.n%2?meanPick:picPick)(h,null)));
+  if(first){const old=reviewSet(set);if(old.length){st.push(()=>banner('🔁 복습','전에 배운 글자, 기억나?'));old.forEach(h=>st.push(()=>review(h,true)))}}
+  st.push(...PLAY[SES.n%PLAY.length](mix));
+  if(first&&isNew)st.push(()=>{if(!S.done.includes(g.i))S.done.push(g.i);S.lastNew=today();save();NEXT()});
+  st.push(()=>finish(first&&isNew?g:null));
+  return st}
+// 복습 최대 5자: 날짜 된 글자 3(오래 밀린 것부터) + 이번 챕터 손님 1 + 다른 챕터 손님 1 (가장 오래 안 본 것)
+function reviewSet(ex){const t=today(),L=learned().filter(h=>!ex.includes(h)),seen=h=>S.cards[h].seen??S.cards[h].due-1,ch=h=>GROUPS[CH[h].g].stage;
+  const out=L.filter(h=>S.cards[h].due<=t).sort((a,b)=>S.cards[a].due-S.cards[b].due).slice(0,3);
+  const cur=SES.g?SES.g.stage:L.length?ch(L.at(-1)):'',guest=f=>L.filter(h=>!out.includes(h)&&f(h)).sort((a,b)=>seen(a)-seen(b))[0];
+  [guest(h=>ch(h)===cur),guest(h=>ch(h)!==cur)].forEach(h=>h&&out.push(h));return out}
 function fill(r,n){const extra=shuffle(learned().filter(h=>!r.includes(h))).slice(0,Math.max(0,n-r.length));return [...r,...extra]}
 
 function banner(t,s){view(bar()+`<div class="title" style="font-size:44px;margin-top:40px">${t}</div><div class="sub">${s}</div><button class="big-btn" onclick="NEXT()">시작 ▶</button>`);say(s)}
@@ -436,7 +454,7 @@ function match(chars){let left=chars.length,sel=null,drag=null;
     if(a.h===c.h){sfx('ok');a.classList.add('ok');c.classList.add('ok');line(a.isH?c:a,dot(a.isH?a:c),'ok');(c.isH?c:a).querySelector('small').textContent=CH[c.h].hun;say(CH[c.h].hun);if(--left===0)setTimeout(NEXT,1400)}
     else{sfx('no');shakeEl(a);shakeEl(c);say('다시 찾아볼까?')}}}
 
-function lineGame(){const L=learned();run([()=>match(shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,4)),()=>finish(null,false)])}
+function lineGame(){const L=learned();SES=null;run([()=>match(shuffle(L.length>=3?L:GROUPS[0].chars).slice(0,4)),()=>finish(null)])}
 
 // 카드 뒤집기: 그림 카드와 한자 카드 짝 찾기 (자유 놀이, 채점 안 함)
 // 카드 4쌍(8장)까지만 — 더 많으면 6살에겐 위치 기억이 너무 어려움. chars 주면 수업 중(끝나면 NEXT)
@@ -460,7 +478,17 @@ function choice(o){let first=true,done=false;
       else{first=false;sfx('no');shakeEl(c);c.classList.add('dim');say('다시 찾아볼까?')}};
     $('O').append(c)})}
 function others(h,n){const L=learned().filter(x=>x!==h);return shuffle(L.length>=n?L:Object.keys(CH).filter(x=>x!==h)).slice(0,n)}
-function review(h,graded){pick(SENT[h]?[pickHanja,pickWord,cloze]:[pickHanja,pickWord])(h,graded?ok=>grade(h,ok):null)}
+// 칸에 따라 활동이 어려워짐: 0~1 그림·소리로 한자 고르기 → 2 한자 보고 뜻 → 3 단어 → 4 문장·레고
+function review(h,graded){const b=S.cards[h]?.box||0,on=graded?ok=>grade(h,ok):null,cb=COMBO.find(x=>x[0].includes(h)&&comboReady(x));
+  if(b<=1)return pick([picPick,pickHanja])(h,on);
+  if(b===2)return meanPick(h,on);
+  if(b===3)return pickWord(h,on);
+  if(cb&&Math.random()<.3){on&&on(true);return lego(cb)}
+  return (SENT[h]?pick([cloze,pickWord]):pickWord)(h,on)}
+function picPick(h,on){const c=CH[h];
+  choice({head:'그림 보고 고르기',title:'이 그림은 어떤 한자일까?',big:c.emoji?pic(c.emoji):c.hun,bigCls:c.emoji?'':'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on,okSay:c.hun})}
+function meanPick(h,on){const set=[h,...others(h,2)];
+  choice({head:'뜻 고르기',title:'이 한자는 무슨 뜻일까?',big:h,bigCls:'hj',opts:set.map(x=>{const [html,cls]=label(x,set);return {html,cls:cls.trim(),ok:x===h,after:html+`<small>${CH[x].hun}</small>`}}),onAnswer:on,okSay:CH[h].hun})}
 function pickHanja(h,on){const c=CH[h];
   choice({head:'글자 찾기',title:'이 글자를 찾아봐!',big:c.hun,bigCls:'txt',speak:c.hun,opts:[{html:h,cls:'hj',ok:true},...others(h,2).map(x=>({html:x,cls:'hj'}))],onAnswer:on})}
 function pickWord(h,on){const c=CH[h],right=pick(c.words),L=learned().filter(x=>x!==h);
@@ -486,12 +514,15 @@ function lego([hz,rd,hint]){const need=[...hz];let k=0;
       else{sfx('no');shakeEl(t);say('다른 글자일까?')}};
     $('T').append(t)})}
 
-function finish(g,isReplay){
+// 10분 안이면 "한 번 더", 넘으면 "오늘은 여기까지"
+function finish(g){const more=SES&&Date.now()-SES.start<6e5,
+  btns=`<div class="row">${more?'<button class="big-btn" onclick="again()">한 번 더 🔁</button>':''}<button class="${more?'soft':'big-btn'}" onclick="goHome()">기차역으로 🚂</button></div>`;
   if(g){const m=g.mission;
     view(bar()+`<div class="title">스티커를 받았어!</div><div class="sticker">${pic(firstEmoji(g))}</div><div class="title hj">${g.chars.join(' ')}</div>
-    <div class="panel" style="text-align:center">🔎 오늘의 미션<br>${m}</div><button class="big-btn" onclick="goHome()">기차역으로 🚂</button>`);
+    <div class="panel" style="text-align:center">🔎 오늘의 미션<br>${m}</div>${btns}`);
     sfx('win');sayList(['스티커를 받았어!','오늘의 미션',m])}
-  else{view(bar()+`<div class="title">${isReplay?'다시 보기 끝!':'오늘도 잘했어! 🎉'}</div><div class="sticker">${ico('trophy')}</div><button class="big-btn" onclick="goHome()">기차역으로 🚂</button>`);sfx('win');say('잘했어!')}}
+  else{const t=more||!SES?'잘했어! 🎉':'오늘은 여기까지! 내일 또 만나요 👋';
+    view(bar()+`<div class="title">${t}</div><div class="sticker">${ico('trophy')}</div>${btns}`);sfx('win');say(t.replace(/[🎉👋]/gu,''))}}
 
 function detective(){const set=pick(HOMO),items=shuffle(set.bins.flatMap((b,bi)=>b[3].map(w=>({w,bi})))).slice(0,6);let k=0,busy=false;
   view(bar('동음 탐정')+`<div class="title">🔍 「${set.s}」는 다 같은 「${set.s}」일까?</div><div class="prompt txt" id="W"></div>
@@ -508,12 +539,12 @@ function book(){view(bar('스티커북')+`<div class="book">${GROUPS.map(g=>{con
   return `<div class="${d?(mastered(g)?'gold':''):'no'}"><b>${d?pic(firstEmoji(g)):'❔'}</b><span class="hj">${d?g.chars.join(''):''}</span><br>${g.name}</div>`}).join('')}</div><div class="sub">⭐ 금테두리 = 복습까지 완벽!</div>`)}
 
 function parentView(){const t=today();
-  const rows=['1A','1B','2','3','4','5'].map(s=>{const gs=GROUPS.filter(g=>g.stage===s),d=gs.filter(g=>S.done.includes(g.i)),m=d.filter(mastered).length;
-    return `<tr><td>${s}단계</td><td style="width:45%"><div class="bar"><i style="width:${d.length/gs.length*100}%"></i></div></td><td>${d.length}/${gs.length}역 · 완벽 ${m}</td></tr>`}).join('');
+  const rows=STAGES.map(([s,lab])=>{const gs=GROUPS.filter(g=>g.stage===s),d=gs.filter(g=>S.done.includes(g.i)),m=d.filter(mastered).length;
+    return `<tr><td>${lab}</td><td style="width:45%"><div class="bar"><i style="width:${d.length/gs.length*100}%"></i></div></td><td>${d.length}/${gs.length}역 · 완벽 ${m}</td></tr>`}).join('');
   const weak=learned().filter(h=>S.cards[h].wrong).sort((a,b)=>S.cards[b].wrong-S.cards[a].wrong).slice(0,8);
   view(bar('부모 화면')+`<div class="panel"><table>${rows}</table></div>
   <div class="panel">만난 한자어 <b>${new Set(learned().flatMap(h=>CH[h].words.map(plain))).size}</b>개 (전체 ${new Set(Object.values(CH).flatMap(c=>c.words.map(plain))).size}) · 배운 글자 ${learned().length}/${Object.keys(CH).length} · 오늘 복습 ${learned().filter(h=>S.cards[h].due<=t).length}개<br>자주 틀린 글자: <span class="hj">${weak.map(h=>`${h}(${S.cards[h].wrong})`).join(' ')||'없음'}</span></div>
-  <div class="panel">하루 새 역 1개가 기본. 더 하려면 홈의 「➕ 새 역 하나 더」.<br>복습 간격: 1일 → 3일 → 7일 → 14일 → 30일. 틀리면 다음 날 다시.<br>역 금테두리 = 모든 글자를 복습에서 두 번 이상 맞힘.</div>
+  <div class="panel">하루 새 역 1개가 기본. 더 하려면 홈의 「➕ 새 역 하나 더」.<br>복습 간격: 글자마다 사다리 0~4칸, 1·1·2·4·7일. 맞히면 한 칸 위, 틀리면 한 칸 아래.<br>역 금테두리 = 모든 글자를 복습에서 두 번 이상 맞힘.</div>
   <div class="row"><button class="soft" onclick="S.off++;save();parentView()">⏩ 하루 지나기 (테스트)</button><button class="soft" id="rs">처음부터 다시</button></div>`);
   const rs=$('rs');rs.onclick=()=>{if(rs.dataset.k){S=fresh();save();goHome()}else{rs.dataset.k=1;rs.textContent='정말요? 한 번 더 누르면 지워져요'}}}
 
