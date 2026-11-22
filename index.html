@@ -338,6 +338,7 @@ function toggleMusic(){S.music=!musicOn();save();syncMusic();goHome()}
 addEventListener('pointerdown',()=>{if(AC&&AC.state==='suspended')AC.resume();if(musicOn()&&BGM.paused)syncMusic()},{passive:true});
 const ico=k=>`<img class="pic" src="img/ui_${k}.webp" alt="">`;
 const pic=e=>e&&e.startsWith('img/')?`<img class="pic" src="${e}" alt="">`:(e||'');
+addEventListener('pointerdown',()=>document.documentElement.requestFullscreen?.().catch(()=>{}),{once:true});
 const view=html=>{$app.innerHTML=html;scrollTo(0,0)};
 const $=id=>document.getElementById(id);
 function el(tag,cls,html){const d=document.createElement(tag);d.className=cls;d.innerHTML=html;return d}
