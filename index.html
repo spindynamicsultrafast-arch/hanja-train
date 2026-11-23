@@ -465,10 +465,14 @@ const BGM=new Audio('sound/bgm.mp3');BGM.loop=true;BGM.volume=.16;
 function musicOn(){return S.music!==false}
 function syncMusic(){if(musicOn())BGM.play().catch(()=>{});else BGM.pause()}
 function toggleMusic(){S.music=!musicOn();save();syncMusic();goHome()}
-addEventListener('pointerdown',()=>{if(AC&&AC.state==='suspended')AC.resume();if(musicOn()&&BGM.paused)syncMusic()},{passive:true});
+// 터치 기기는 pointerdown을 사용자 동작으로 안 쳐줌(크롬·사파리) → touchend·click 때도 소리 깨우기
+try{navigator.audioSession&&(navigator.audioSession.type='playback')}catch(e){} // 아이패드 무음 스위치에도 소리
+const unlock=()=>{try{const a=AC||(AC=new (window.AudioContext||window.webkitAudioContext)());if(a.state!=='running')a.resume();
+  const s=a.createBufferSource();s.buffer=a.createBuffer(1,1,22050);s.connect(a.destination);s.start()}catch(e){}if(musicOn()&&BGM.paused)syncMusic()};
+['pointerdown','pointerup','touchend','click','keydown'].forEach(t=>addEventListener(t,unlock,{passive:true}));
 const ico=k=>`<img class="pic" src="img/ui_${k}.webp" alt="">`;
 const pic=e=>e&&e.startsWith('img/')?`<img class="pic" src="${e}" alt="">`:(e||'');
-addEventListener('pointerdown',()=>document.documentElement.requestFullscreen?.().catch(()=>{}),{once:true});
+addEventListener('click',()=>document.documentElement.requestFullscreen?.().catch(()=>{}),{once:true});
 const view=html=>{document.querySelectorAll('.ghost').forEach(g=>g.remove());$app.innerHTML=html;scrollTo(0,0)};
 const $=id=>document.getElementById(id);
 function el(tag,cls,html){const d=document.createElement(tag);d.className=cls;d.innerHTML=html;return d}
